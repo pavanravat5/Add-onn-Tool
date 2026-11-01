@@ -131,38 +131,38 @@
                         <p class="text-xs text-slate-400">
                             Detects item names, categories, and explicit/implied add-on columns automatically
                         </p>
-                    </div>
-                </div>
-
-                <!-- Info Box -->
-                <div class="mt-4 p-3.5 bg-slate-100/80 rounded-xl border border-slate-200/60 text-xs text-slate-600 space-y-1">
-                    <p class="font-semibold text-slate-700 flex items-center gap-1.5">
-                        <i class="fa-solid fa-lightbulb text-amber-500"></i> Smart Processing Logic:
-                    </p>
-                    <p id="modeExplanationText">
-                        <b>Category-Wise Mode:</b> Creates common add-on groups for each menu category.<br>
-                        <b>Item-Wise Mode:</b> Generates dish-specific add-ons (e.g., <i>Extra Bhature</i> for <i>Chola Bhatura</i>, <i>Extra Pav</i> for <i>Paav Bhaji</i>).
-                    </p>
-                </div>
-            </div>
-
-            <!-- Global Configuration Panel -->
-            <div class="glass-card rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
-                <div>
-                    <h2 class="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-indigo-600"></i>
-                        Default Import Settings
-                    </h2>
-
-                    <div class="space-y-3 text-xs">
+                    <div class="space-y-3.5 text-xs">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block font-medium text-slate-700 mb-1">Addon Min</label>
-                                <input type="number" id="defaultMin" value="0" min="0" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <label class="block font-medium text-slate-700 mb-1">Grouping Mode</label>
+                                <select id="groupingMode" onchange="reprocessCurrentData()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-white font-medium text-slate-800">
+                                    <option value="item" selected>Item-Wise Groups</option>
+                                    <option value="category">Category-Wise Groups</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="block font-medium text-slate-700 mb-1">Addon Max</label>
-                                <input type="number" id="defaultMax" value="5" min="1" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <label class="block font-medium text-slate-700 mb-1">Addon Min</label>
+                                <input type="number" id="defaultMin" value="0" min="0" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="block font-medium text-slate-700">Addon Max</label>
+                                    <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] text-brand-600 font-semibold">
+                                        <input type="checkbox" id="autoMaxGroupSize" checked onchange="toggleAutoMax()" class="rounded text-brand-600 focus:ring-brand-500">
+                                        <span>Auto Group Items Count</span>
+                                    </label>
+                                </div>
+                                <input type="number" id="defaultMax" value="5" min="1" disabled onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-slate-100 disabled:opacity-60">
+                            </div>
+                            <div>
+                                <label class="block font-medium text-slate-700 mb-1">Selection Type</label>
+                                <select id="defaultSelection" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-white">
+                                    <option value="M" selected>M (Multiple)</option>
+                                    <option value="S">S (Single)</option>
+                                </select>
                             </div>
                         </div>
 
@@ -295,70 +295,229 @@
 
     <!-- JAVASCRIPT APP ENGINE -->
     <script>
-        let rawMenuData = [];
+        // Global Parsed Add-ons Store
         let parsedAddons = [];
-        let currentMode = 'category'; // 'category' or 'item'
+        let rawLoadedRows = [];
 
-        const CSV_HEADERS = [
-            'Addon_Group_Id',
-            'Addon_Group_Name',
-            'Addon_Group_online_display',
-            'Addon_Group_status',
-            'Addon_Min',
-            'Addon_Max',
-            'Addon_Item_Selection',
-            'Max_Selection_Per_Addon',
-            'Show_In_Online',
-            'Show_In_Pos',
-            'Addon_Group_Show_In_Captain',
-            'Allow_Open_Quantity',
-            'Addon_Item_Name',
-            'Addon_Item_Price',
-            'Addon_item_status',
-            'Attribute',
-            'Rank',
-            'Sapcode',
-            'Show_In_Captain'
-        ];
-
-        // Drag & Drop Handling
-        const dropZone = document.getElementById('dropZone');
-        ['dragenter', 'dragover'].forEach(evt => {
-            dropZone.addEventListener(evt, (e) => {
-                e.preventDefault();
-                dropZone.classList.add('border-indigo-500', 'bg-indigo-50/40');
-            }, false);
-        });
-        ['dragleave', 'drop'].forEach(evt => {
-            dropZone.addEventListener(evt, (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/40');
-            }, false);
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length) processFile(files[0]);
-        });
-
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) processFile(file);
+        // Toggle Auto Group Size Max vs Manual Max
+        function toggleAutoMax() {
+            const isAuto = document.getElementById('autoMaxGroupSize').checked;
+            const maxInput = document.getElementById('defaultMax');
+            if (isAuto) {
+                maxInput.disabled = true;
+                maxInput.classList.add('bg-slate-100');
+            } else {
+                maxInput.disabled = false;
+                maxInput.classList.remove('bg-slate-100');
+            }
+            reapplyGlobalDefaults();
         }
 
+        function reprocessCurrentData() {
+            if (rawLoadedRows && rawLoadedRows.length > 0) {
+                parseMenuRows(rawLoadedRows);
+            }
+        }
+
+        // Parse File using SheetJS
         function processFile(file) {
             const reader = new FileReader();
             reader.onload = function (e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    rawMenuData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-                    if (!rawMenuData || rawMenuData.length === 0) {
+                    if (!jsonData || jsonData.length === 0) {
                         showToast('Uploaded file is empty!', 'error');
                         return;
                     }
+
+                    rawLoadedRows = jsonData;
+                    parseMenuRows(jsonData);
+                    updateFileBadge(file.name);
+                    showToast('Menu Excel parsed successfully!');
+                } catch (err) {
+                    console.error(err);
+                    showToast('Error reading Excel file format', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Smart Extraction Engine (Supports Item-Wise & Category-Wise)
+        function parseMenuRows(rows) {
+            parsedAddons = [];
+            const groupMap = new Map();
+            const mode = document.getElementById('groupingMode').value; // 'item' or 'category'
+
+            let hasExplicitAddons = false;
+
+            // Strategy 1: Explicit column check
+            rows.forEach(row => {
+                const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group', 'Item Category']) || 'General Add-ons';
+                const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
+                
+                const groupKey = (mode === 'item' && itemName) ? `${itemName} Add-ons` : generateAddonGroupName(category);
+
+                for (let i = 1; i <= 10; i++) {
+                    const addonName = getRowValue(row, [`Add-on ${i}`, `Addon ${i}`, `Add-on Name ${i}`, `Option ${i}`]);
+                    const addonPrice = parseFloat(getRowValue(row, [`Add-on ${i} Price`, `Addon ${i} Price`, `Add-on Price ${i}`, `Option ${i} Price`])) || 0;
+
+                    if (addonName && addonName.trim() !== "") {
+                        hasExplicitAddons = true;
+                        addToGroup(groupMap, groupKey, addonName.trim(), addonPrice);
+                    }
+                }
+            });
+
+            // Strategy 2: Automatic Pairing Logic
+            if (!hasExplicitAddons || groupMap.size === 0) {
+                const categoryItems = new Map();
+
+                rows.forEach(row => {
+                    const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group', 'Item Category']) || 'General';
+                    const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
+                    const itemPrice = parseFloat(getRowValue(row, ['Price', 'Item Price', 'Rate', 'MRP'])) || 0;
+
+                    if (itemName && itemName.trim() !== '') {
+                        if (!categoryItems.has(category)) {
+                            categoryItems.set(category, []);
+                        }
+                        categoryItems.get(category).push({ name: itemName.trim(), price: itemPrice });
+                    }
+                });
+
+                if (mode === 'item') {
+                    // Item-Wise dynamic grouping
+                    rows.forEach(row => {
+                        const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
+                        const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group']) || 'General';
+                        if (itemName && itemName.trim() !== '') {
+                            const groupName = `${itemName.trim()} Add-ons`;
+                            const recommended = selectSpecificItemAddons(itemName.trim(), category, categoryItems);
+                            recommended.forEach(addon => addToGroup(groupMap, groupName, addon.name, addon.price));
+                        }
+                    });
+                } else {
+                    // Category-Wise grouping
+                    categoryItems.forEach((items, categoryName) => {
+                        const groupName = generateAddonGroupName(categoryName);
+                        const recommendedAddons = selectCategoryAddons(categoryName, items, categoryItems);
+                        recommendedAddons.forEach(addon => {
+                            addToGroup(groupMap, groupName, addon.name, addon.price);
+                        });
+                    });
+                }
+            }
+
+            // Convert Map to Rows & Automatically compute Addon_Max equal to group size
+            let idSeq = 1;
+            const autoMax = document.getElementById('autoMaxGroupSize').checked;
+            const defaultMaxVal = parseInt(document.getElementById('defaultMax').value) || 5;
+
+            groupMap.forEach((items, groupName) => {
+                const currentGroupId = idSeq++;
+                const calculatedMax = autoMax ? items.length : defaultMaxVal;
+
+                items.forEach(item => {
+                    parsedAddons.push({
+                        groupId: currentGroupId,
+                        groupName: groupName,
+                        itemName: item.name,
+                        itemPrice: item.price,
+                        min: parseInt(document.getElementById('defaultMin').value) || 0,
+                        max: calculatedMax,
+                        selection: document.getElementById('defaultSelection').value || 'M',
+                        attribute: document.getElementById('defaultAttribute').value || 'veg',
+                        online: document.getElementById('defaultOnline').value || 'yes',
+                        pos: document.getElementById('defaultPos').value || 'yes',
+                        captain: document.getElementById('defaultCaptain').value || 'yes'
+                    });
+                });
+            });
+
+            renderTable();
+            populateCategoryFilter();
+        }
+
+        // Dedicated Specific Item-Wise Smart Selector
+        function selectSpecificItemAddons(itemName, categoryName, categoryItems) {
+            const item = itemName.toLowerCase();
+            const cat = categoryName.toLowerCase();
+            let list = [];
+
+            if (item.includes('chola') || item.includes('bhatura')) {
+                return [{ name: 'Extra Bhature', price: 50 }, { name: 'Cold Drink (250 ml)', price: 49 }, { name: 'Sweet Lassi', price: 110 }, { name: 'Gulab Jamun (1 Pc)', price: 60 }];
+            }
+            if (item.includes('paav') || item.includes('pav')) {
+                return [{ name: 'Extra Pav', price: 50 }, { name: 'Cold Drink (250 ml)', price: 49 }, { name: 'Masala Chaach', price: 90 }, { name: 'Gulab Jamun (1 Pc)', price: 60 }];
+            }
+            if (item.includes('khichdi')) {
+                return [{ name: 'Aloo Jeera', price: 170 }, { name: 'Boondi Raita', price: 130 }, { name: 'Plain Chaach', price: 70 }, { name: 'Green Salad', price: 109 }];
+            }
+            if (item.includes('dal tadka')) {
+                return [{ name: 'Garlic Naan', price: 80 }, { name: 'Tandoori Butter Roti', price: 25 }, { name: 'Jeera Rice', price: 170 }, { name: 'Boondi Raita', price: 130 }];
+            }
+
+            return selectCategoryAddons(categoryName, [], categoryItems);
+        }
+
+        // Reapply Defaults & Auto Group Max Update
+        function reapplyGlobalDefaults() {
+            const min = parseInt(document.getElementById('defaultMin').value) || 0;
+            const defaultMaxVal = parseInt(document.getElementById('defaultMax').value) || 5;
+            const isAutoMax = document.getElementById('autoMaxGroupSize').checked;
+            const sel = document.getElementById('defaultSelection').value;
+            const attr = document.getElementById('defaultAttribute').value;
+            const online = document.getElementById('defaultOnline').value;
+            const pos = document.getElementById('defaultPos').value;
+            const captain = document.getElementById('defaultCaptain').value;
+
+            // Map total size per Group ID
+            const groupCounts = new Map();
+            if (isAutoMax) {
+                parsedAddons.forEach(item => {
+                    groupCounts.set(item.groupId, (groupCounts.get(item.groupId) || 0) + 1);
+                });
+            }
+
+            parsedAddons.forEach(item => {
+                item.min = min;
+                item.max = isAutoMax ? (groupCounts.get(item.groupId) || 1) : defaultMaxVal;
+                item.selection = sel;
+                item.attribute = attr;
+                item.online = online;
+                item.pos = pos;
+                item.captain = captain;
+            });
+
+            renderTable();
+            showToast(isAutoMax ? 'Addon_Max updated to match exact group items count!' : 'Global defaults updated');
+        }
+
+        // Demo Data Loader (Simulates Grand Feast Restaurant Menu)
+        function loadSampleData() {
+            const demoRows = [
+                { "Category": "Breakfast", "Item Name": "Chola Bhatura", "Price": 160 },
+                { "Category": "Breakfast", "Item Name": "Paav Bhaji", "Price": 140 },
+                { "Category": "Tandoori", "Item Name": "Paneer Tikka", "Price": 280 },
+                { "Category": "South Indian Food", "Item Name": "Masala Dosa", "Price": 150 },
+                { "Category": "Chinese", "Item Name": "Veg Chowmein", "Price": 180 },
+                { "Category": "Dal", "Item Name": "Dal Tadka", "Price": 190 },
+                { "Category": "Dal", "Item Name": "Ghee Dal Rice Khichdi", "Price": 180 },
+                { "Category": "Paneer N Veg", "Item Name": "Paneer Butter Masala", "Price": 300 },
+                { "Category": "Breads", "Item Name": "Butter Naan", "Price": 60 },
+                { "Category": "Beverages", "Item Name": "Cold Coffee", "Price": 150 }
+            ];
+
+            rawLoadedRows = demoRows;
+            parseMenuRows(demoRows);
+            updateFileBadge("Demo_Menu_Grand_Feast.xlsx");
+            showToast("Demo Menu loaded with Auto Addon_Max set!");
+        }
 
                     generateAddonsFromRawData();
                     updateFileBadge(file.name);
