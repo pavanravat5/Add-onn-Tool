@@ -3,986 +3,536 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu Add-on POS Converter & Generator</title>
-    <!-- Tailwind CSS -->
+    <title>MenuAddon Studio - POS Add-on Converter & Assigner</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS (xlsx) for client-side Excel parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Mammoth.js for Word (.docx) document parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <!-- PDF.js for parsing PDF documents -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script>
-        if (window['pdfjs-dist/build/pdf']) {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        }
-    </script>
-    <!-- Font Awesome Icons -->
+    <!-- SheetJS (xlsx) for Excel Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <script>
-        // Configure PDF.js worker URL
-        if (window.pdfjsLib) {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        }
-
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#f0f7ff',
-                            100: '#e0effe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #060913;
+            color: #e2e8f0;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(0, 210, 255, 0.15), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 132, 255, 0.1), transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism card effects */
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(229, 231, 235, 0.8);
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+
+        .glass-nav {
+            background: rgba(10, 15, 29, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 210, 255, 0.25);
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
+
+        /* Electric Blue Butterfly Watermark */
+        .butterfly-watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 650px;
+            height: 650px;
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 0;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><path fill="%2300d2ff" d="M250 200 C150 50, 20 100, 50 280 C80 380, 200 400, 245 270 C248 260, 252 260, 255 270 C300 400, 420 380, 450 280 C480 100, 350 50, 250 200 Z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            filter: drop-shadow(0 0 40px #00d2ff);
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+
+        /* Custom Cyan & Electric Blue Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0084ff;
             border-radius: 4px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00d2ff;
+        }
+
+        .tab-active {
+            background: linear-gradient(135deg, #0084ff 0%, #00d2ff 100%);
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen font-sans flex flex-col">
+<body class="min-h-screen relative overflow-x-hidden">
 
-    <!-- Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md">
-                    <i class="fa-solid fa-utensils text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-slate-900 text-lg leading-tight">POS Menu Add-on Generator</h1>
-                    <p class="text-xs text-slate-500">Supports PDF, Word (.docx), Excel (.xlsx), & CSV</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <!-- Mode Toggle Selector -->
-                <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200 text-xs font-medium">
-                    <button id="btnCategoryMode" onclick="switchMode('category')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm font-semibold">
-                        <i class="fa-solid fa-layer-group"></i> Category-Wise
-                    </button>
-                    <button id="btnItemMode" onclick="switchMode('item')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
-                        <i class="fa-solid fa-bowl-food"></i> Item-Wise (Specific)
-                    </button>
-                </div>
+    <!-- Butterfly Background Watermark -->
+    <div class="butterfly-watermark"></div>
 
-                <button onclick="loadSampleData()" class="px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5 border border-slate-200">
-                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
-                    <span>Load Demo Menu</span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
-        <!-- Banner showing Active Strategy -->
-        <div id="modeBanner" class="p-3.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-circle-info text-indigo-600 text-sm"></i>
-                <span>Current Mode: <strong id="activeModeText" class="font-semibold">Category-Wise Grouping</strong> &mdash; Add-ons are grouped by menu categories.</span>
-            </div>
-            <span class="text-[11px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium" id="activeModeBadge">Category Mode</span>
-        </div>
-
-        <!-- File Upload Area & Config Panel -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Drag and Drop Box -->
-            <div class="lg:col-span-2 glass-card rounded-2xl p-6 shadow-sm flex flex-col justify-between border border-slate-200">
-                <div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-file-invoice text-emerald-600"></i>
-                            Upload Restaurant Menu File
-                        </h2>
-                        <span id="fileStatusBadge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-                            No file loaded
-                        </span>
+    <div class="relative z-10 flex flex-col min-h-screen">
+        <!-- Header Nav -->
+        <header class="glass-nav sticky top-0 z-50 px-6 py-4">
+            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-cyan-500/30">
+                        <i class="fa-solid font-bold fa-butterfly text-white"></i>
                     </div>
+                    <div>
+                        <h1 class="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-300 tracking-wide">
+                            MenuAddon Studio
+                        </h1>
+                        <p class="text-xs text-cyan-400/80">POS & Aggregator Add-on Matrix Generator</p>
+                    </div>
+                </div>
 
-                    <!-- Drop Zone -->
-                    <div id="dropZone" onclick="document.getElementById('fileInput').click()" 
-                         class="border-2 border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50/40 rounded-xl p-8 text-center cursor-pointer transition-all duration-200 group">
-                        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .pdf" class="hidden" onchange="handleFileSelect(event)">
-                        
-                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 group-hover:scale-110 rounded-full flex items-center justify-center mx-auto mb-3 transition-transform">
-                            <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                <!-- Navigation Tabs -->
+                <div class="flex items-center p-1 bg-slate-900/80 rounded-xl border border-cyan-500/30">
+                    <button id="btn-tab-1" onclick="switchTab(1)" class="tab-active px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-white/20 text-xs flex items-center justify-center font-bold">1</span>
+                        Menu Parser & Generator
+                    </button>
+                    <button id="btn-tab-2" onclick="switchTab(2)" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-slate-800 text-xs flex items-center justify-center font-bold">2</span>
+                        Addon Editor & Review
+                    </button>
+                    <button id="btn-tab-3" onclick="switchTab(3)" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-slate-800 text-xs flex items-center justify-center font-bold">3</span>
+                        3-File Matrix Assigner
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Container -->
+        <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+            <!-- TAB 1: Menu Parsing & Add-on Generation -->
+            <div id="tab-content-1" class="space-y-6">
+                <!-- Banner Upload Card -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+                    <div class="max-w-2xl space-y-4">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Step 1: Menu Parsing
                         </div>
-                        <p class="text-sm font-medium text-slate-700 mb-1">
-                            Click to upload or drag & drop Menu File
-                        </p>
-                        <p class="text-xs text-slate-500 font-medium">
-                            Supports: <span class="text-emerald-700 font-semibold">Excel (.xlsx, .xls, .csv)</span>, <span class="text-blue-700 font-semibold">Word (.docx)</span> & <span class="text-rose-700 font-semibold">PDF (.pdf)</span>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">Upload Restaurant Menu File</h2>
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            Upload your restaurant menu Excel (.xlsx, .xls) or CSV sheet. MenuAddon Studio will extract items, categories, prices, and build structured POS Add-on groups with auto-matched <code>Addon_Max</code> count rules.
                         </p>
                     </div>
-                </div>
 
-                <!-- Format Guide & Note -->
-                <div class="mt-4 pt-3 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
-                    <span><i class="fa-solid fa-sparkles text-amber-500 mr-1"></i> Auto-detects dishes, prices, and categories from formatted or raw text.</span>
-                    <button onclick="clearAllData()" class="text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1">
-                        <i class="fa-solid fa-trash-can"></i> Clear
-                    </button>
-                </div>
-            </div>
-
-            <!-- Global Configurations Panel -->
-            <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-indigo-600"></i>
-                        POS Import Settings
-                    </h3>
-
-                    <div class="space-y-3.5 text-xs">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-medium text-slate-700 mb-1">Grouping Mode</label>
-                                <select id="groupingMode" onchange="reprocessCurrentData()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-white font-medium text-slate-800">
-                                    <option value="item">Item-Wise Groups</option>
-                                    <option value="category" selected>Category-Wise Groups</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-medium text-slate-700 mb-1">Addon Min</label>
-                                <input type="number" id="defaultMin" value="0" min="0" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
-                            </div>
+                    <div class="mt-8 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 bg-slate-900/40 rounded-xl p-8 text-center transition-all duration-300 cursor-pointer group" onclick="document.getElementById('menu-file-input').click()">
+                        <input type="file" id="menu-file-input" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleMenuUpload(event)">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-2xl group-hover:scale-110 transition-transform duration-300">
+                            <i class="fa-solid fa-file-excel"></i>
                         </div>
+                        <p class="text-white font-semibold text-lg">Click to Upload Menu Excel/CSV Sheet</p>
+                        <p class="text-xs text-slate-400 mt-1">Supports XLSX, XLS, and CSV files</p>
+                    </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <div class="flex justify-between items-center mb-1">
-                                    <label class="block font-medium text-slate-700">Addon Max</label>
-                                    <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] text-brand-600 font-semibold">
-                                        <input type="checkbox" id="autoMaxGroupSize" checked onchange="toggleAutoMax()" class="rounded text-brand-600 focus:ring-brand-500">
-                                        <span>Auto Group Items</span>
-                                    </label>
-                                </div>
-                                <input type="number" id="defaultMax" value="5" min="1" disabled onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-slate-100 disabled:opacity-60">
-                            </div>
-                            <div>
-                                <label class="block font-medium text-slate-700 mb-1">Selection Mode</label>
-                                <select id="defaultSelection" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                                    <option value="M" selected>M (Multiple)</option>
-                                    <option value="S">S (Single)</option>
-                                </select>
-                            </div>
+                    <!-- Options Bar -->
+                    <div class="mt-6 flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-800">
+                        <div class="flex items-center gap-6">
+                            <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                                <input type="checkbox" id="chk-auto-max" checked class="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 bg-slate-900 border-slate-700">
+                                <span>Auto Group Item Count (<code>Addon_Max = Group Items</code>)</span>
+                            </label>
                         </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-medium text-slate-700 mb-1">Attribute</label>
-                                <select id="defaultAttribute" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                                    <option value="veg" selected>Veg</option>
-                                    <option value="non-veg">Non-Veg</option>
-                                    <option value="egg">Egg</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-medium text-slate-700 mb-1">Allow Open Qty</label>
-                                <select id="defaultOpenQty" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                                    <option value="no" selected>no</option>
-                                    <option value="yes">yes</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200">
-                            <div>
-                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Show Online</label>
-                                <select id="defaultOnline" onchange="reapplyGlobalDefaults()" class="w-full px-2 py-1 rounded border border-slate-300 text-xs bg-white">
-                                    <option value="yes" selected>yes</option>
-                                    <option value="no">no</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Show POS</label>
-                                <select id="defaultPos" onchange="reapplyGlobalDefaults()" class="w-full px-2 py-1 rounded border border-slate-300 text-xs bg-white">
-                                    <option value="yes" selected>yes</option>
-                                    <option value="no">no</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Show Captain</label>
-                                <select id="defaultCaptain" onchange="reapplyGlobalDefaults()" class="w-full px-2 py-1 rounded border border-slate-300 text-xs bg-white">
-                                    <option value="yes" selected>yes</option>
-                                    <option value="no">no</option>
-                                </select>
-                            </div>
-                        </div>
+                        <button onclick="loadDemoData()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-cyan-400 border border-cyan-500/30 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-flask"></i> Load Demo Dataset
+                        </button>
                     </div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
-                    <span class="text-xs text-slate-500">Total Add-on Rows: <strong id="totalItemsCount" class="text-slate-800">0</strong></span>
-                    <button onclick="reapplyGlobalDefaults()" class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1">
-                        <i class="fa-solid fa-rotate"></i> Apply Defaults
-                    </button>
+                <!-- Preview Grid for Tab 1 -->
+                <div id="step1-output" class="hidden glass-card rounded-2xl p-6 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-cyan-400"></i> Generated Add-on Groups Preview
+                            </h3>
+                            <p class="text-xs text-slate-400" id="step1-stats">0 Add-on Groups extracted</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="downloadCSV('step1')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> Export Step 1 Addon CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-800">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900/90 text-cyan-400 font-bold uppercase border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Group ID</th>
+                                    <th class="p-3">Addon Group Name</th>
+                                    <th class="p-3">Addon Item Name</th>
+                                    <th class="p-3">Price (₹)</th>
+                                    <th class="p-3">Addon Min</th>
+                                    <th class="p-3">Addon Max</th>
+                                    <th class="p-3">Selection</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-step1-body" class="divide-y divide-slate-800/60 font-mono">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Toolbar & Filters -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-center">
-            <!-- Search & Filter -->
-            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <div class="relative min-w-[240px] flex-1 sm:flex-none">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                    <input type="text" id="searchInput" oninput="filterTable()" placeholder="Search group or item..." 
-                           class="w-full pl-9 pr-3 py-1.5 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+            <!-- TAB 2: Addon Editor & Review -->
+            <div id="tab-content-2" class="hidden space-y-6">
+                <div class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold mb-2">
+                                <i class="fa-solid fa-pen-to-square"></i> Step 2: Customization & Review
+                            </div>
+                            <h2 class="text-2xl font-bold text-white">Review & Edit Add-on Rules</h2>
+                            <p class="text-xs text-slate-400 mt-1">Modify item names, add-on prices, status, min/max limits before final assignment.</p>
+                        </div>
+                        <button onclick="downloadCSV('step2')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+                            <i class="fa-solid fa-file-export"></i> Save & Download Reviewed CSV
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-800 max-h-[500px]">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900 sticky top-0 text-cyan-400 font-bold uppercase border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Group Name</th>
+                                    <th class="p-3">Addon Item</th>
+                                    <th class="p-3">Price</th>
+                                    <th class="p-3">Min</th>
+                                    <th class="p-3">Max</th>
+                                    <th class="p-3">Selection</th>
+                                    <th class="p-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-step2-body" class="divide-y divide-slate-800/60 font-mono">
+                                <tr>
+                                    <td colspan="7" class="p-8 text-center text-slate-500 font-sans">
+                                        Please parse or load a menu in Step 1 first to populate the editor.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-
-                <select id="categoryFilter" onchange="filterTable()" class="px-3 py-1.5 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[220px]">
-                    <option value="ALL">All Add-on Groups</option>
-                </select>
             </div>
 
-            <!-- Actions -->
-            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-                <button onclick="addNewRow()" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-plus text-emerald-600"></i> Add Row
-                </button>
-                <button onclick="exportToCSV()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                    <i class="fa-solid fa-file-export"></i>
-                    <span>Download CSV Import File</span>
-                </button>
-            </div>
-        </div>
+            <!-- TAB 3: 3-File Matrix Assigner System -->
+            <div id="tab-content-3" class="hidden space-y-6">
+                <div class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold mb-2">
+                            <i class="fa-solid fa-diagram-project"></i> Step 3: Matrix Engine
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">3-File Add-on Assigner & Matrix Converter</h2>
+                        <p class="text-xs text-slate-400 mt-1">Upload the 3 required files to merge and auto-assign add-on groups to items.</p>
+                    </div>
 
-        <!-- Add-on Preview Table -->
-        <div class="glass-card rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto custom-scrollbar max-h-[500px]">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead class="bg-slate-100 text-slate-700 sticky top-0 z-10 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
-                        <tr>
-                            <th class="p-3 w-16">Group ID</th>
-                            <th class="p-3 min-w-[180px]">Addon Group Name</th>
-                            <th class="p-3 min-w-[180px]">Addon Item Name</th>
-                            <th class="p-3 w-24">Price (₹)</th>
-                            <th class="p-3 w-16">Min</th>
-                            <th class="p-3 w-16">Max</th>
-                            <th class="p-3 w-20">Select</th>
-                            <th class="p-3 w-20">Attr</th>
-                            <th class="p-3 w-20">Online</th>
-                            <th class="p-3 w-20">POS</th>
-                            <th class="p-3 w-20">Captain</th>
-                            <th class="p-3 w-16 text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="addonTableBody" class="divide-y divide-slate-200 bg-white">
-                        <tr>
-                            <td colspan="12" class="text-center py-12 text-slate-400">
-                                <i class="fa-solid fa-file-circle-plus text-4xl mb-3 text-slate-300 block"></i>
-                                Upload a PDF, DOCX, XLSX or CSV file to observe menu items & generate add-ons.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <!-- Table Footer -->
-            <div class="bg-slate-50 border-t border-slate-200 p-3 px-4 flex justify-between items-center text-xs text-slate-500">
-                <span id="showingCount">Showing 0 rows</span>
-                <span class="text-[11px]">19 Standard Aggregator/POS Export Columns</span>
-            </div>
-        </div>
+                    <!-- 3 Drag and Drop Upload Slots -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- File 1 Slot -->
+                        <div class="p-5 rounded-xl bg-slate-900/60 border border-cyan-500/30 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-cyan-400 uppercase">File 1</span>
+                                <span id="badge-f1" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Pending</span>
+                            </div>
+                            <h4 class="text-sm font-bold text-white">Original Menu File</h4>
+                            <p class="text-xs text-slate-400">Original menu with categories & items.</p>
+                            <input type="file" id="input-matrix-f1" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleMatrixFile(1, event)">
+                            <button onclick="document.getElementById('input-matrix-f1').click()" class="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition-all">
+                                <i class="fa-solid fa-upload mr-1"></i> Choose File 1
+                            </button>
+                        </div>
 
-    </main>
+                        <!-- File 2 Slot -->
+                        <div class="p-5 rounded-xl bg-slate-900/60 border border-cyan-500/30 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-cyan-400 uppercase">File 2</span>
+                                <span id="badge-f2" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Pending</span>
+                            </div>
+                            <h4 class="text-sm font-bold text-white">Reviewed Add-on File</h4>
+                            <p class="text-xs text-slate-400">Add-on CSV reviewed in Step 2.</p>
+                            <input type="file" id="input-matrix-f2" class="hidden" accept=".csv, .xlsx" onchange="handleMatrixFile(2, event)">
+                            <button onclick="document.getElementById('input-matrix-f2').click()" class="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition-all">
+                                <i class="fa-solid fa-upload mr-1"></i> Choose File 2
+                            </button>
+                        </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
-        <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs">
-            <span id="toastIcon"><i class="fa-solid fa-circle-check text-emerald-400"></i></span>
-            <span id="toastMessage">Action completed successfully</span>
-        </div>
+                        <!-- File 3 Slot -->
+                        <div class="p-5 rounded-xl bg-slate-900/60 border border-cyan-500/30 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-cyan-400 uppercase">File 3</span>
+                                <span id="badge-f3" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Pending</span>
+                            </div>
+                            <h4 class="text-sm font-bold text-white">Assign Matrix Format</h4>
+                            <p class="text-xs text-slate-400">Matrix sheet with Min/Max & Y/N mappings.</p>
+                            <input type="file" id="input-matrix-f3" class="hidden" accept=".csv" onchange="handleMatrixFile(3, event)">
+                            <button onclick="document.getElementById('input-matrix-f3').click()" class="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition-all">
+                                <i class="fa-solid fa-upload mr-1"></i> Choose File 3
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Process & Export Action Bar -->
+                    <div class="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                        <button onclick="process3FileMatrix()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-sm shadow-lg shadow-cyan-500/30 flex items-center gap-2">
+                            <i class="fa-solid fa-gears text-lg"></i> Process 3-File Matrix Merging
+                        </button>
+                        <div class="flex flex-wrap items-center gap-3" id="matrix-export-buttons">
+                            <!-- Export buttons populate after processing -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-auto border-t border-slate-900 bg-slate-950/80 py-4 px-6 text-center text-xs text-slate-500">
+            MenuAddon Studio &copy; 2026 | POS Bulk Import & Add-on Matrix Converter
+        </footer>
     </div>
 
-    <!-- JAVASCRIPT ENGINE WITH MULTI-FILE PARSING (PDF, DOCX, XLSX, CSV) -->
+    <!-- Application JavaScript Engine -->
     <script>
-        // Global Parsed Add-ons Store
-        let parsedAddons = [];
-        let rawLoadedRows = [];
-        const CSV_HEADERS = ["Addon_Group_ID", "Addon_Group_Name", "Show_In_Online", "Is_Active", "Addon_Min", "Addon_Max", "Addon_Item_Selection", "Max_Selection_Per_Addon", "Show_In_Online_Addon", "Show_In_Pos", "Show_In_Captain", "Is_Default", "Addon_Item_Name", "Addon_Item_Price", "Is_Active_Addon", "Attribute", "Addon_Item_Rank", "Addon_Group_Rank", "Show_In_Captain_Addon"];
+        let parsedAddonsData = [];
+        let fileMatrixData = { 1: null, 2: null, 3: null };
 
-        // Drag & Drop Listeners
-        const dropZone = document.getElementById('dropZone');
-        if (dropZone) {
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    dropZone.classList.add('border-indigo-500', 'bg-indigo-50/50');
-                }, false);
-            });
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
-                }, false);
-            });
-            dropZone.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                if (files && files.length > 0) {
-                    processFile(files[0]);
-                }
-            });
-        }
-
-        function handleFileSelect(e) {
-            const files = e.target.files;
-            if (files && files.length > 0) {
-                processFile(files[0]);
-            }
-        }
-
-        // Parse File (Excel, CSV, Word DOCX, PDF)
-        function processFile(file) {
-            const fileName = file.name.toLowerCase();
-            showToast(`Processing ${file.name}...`);
-
-            if (fileName.endsWith('.docx')) {
-                parseDocxFile(file);
-            } else if (fileName.endsWith('.pdf')) {
-                parsePdfFile(file);
-            } else {
-                parseExcelFile(file);
-            }
-        }
-
-        // Parse Excel & CSV Files using SheetJS
-        function parseExcelFile(file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-                    if (!jsonData || jsonData.length === 0) {
-                        showToast('Uploaded sheet is empty!', 'error');
-                        return;
-                    }
-
-                    rawLoadedRows = jsonData;
-                    parseMenuRows(jsonData);
-                    updateFileBadge(file.name);
-                    showToast('Excel/CSV parsed successfully!');
-                } catch (err) {
-                    console.error(err);
-                    showToast('Error reading Excel/CSV file', 'error');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // Parse Word (.docx) Files using Mammoth.js
-        function parseDocxFile(file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const arrayBuffer = e.target.result;
-                mammoth.extractRawText({ arrayBuffer: arrayBuffer })
-                    .then(function (result) {
-                        const rawText = result.value;
-                        const rows = extractMenuFromText(rawText);
-                        if (rows.length === 0) {
-                            showToast('No structured items found in Word file!', 'error');
-                            return;
-                        }
-                        rawLoadedRows = rows;
-                        parseMenuRows(rows);
-                        updateFileBadge(file.name);
-                        showToast('Word (.docx) file parsed successfully!');
-                    })
-                    .catch(function (err) {
-                        console.error(err);
-                        showToast('Error reading Word file', 'error');
-                    });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // Parse PDF Files using pdfjs-dist
-        function parsePdfFile(file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const typedarray = new Uint8Array(e.target.result);
-                pdfjsLib.getDocument(typedarray).promise.then(function (pdf) {
-                    let totalPages = pdf.numPages;
-                    let textPromises = [];
-
-                    for (let i = 1; i <= totalPages; i++) {
-                        textPromises.push(
-                            pdf.getPage(i).then(page => {
-                                return page.getTextContent().then(textContent => {
-                                    return textContent.items.map(item => item.str).join(' ');
-                                });
-                            })
-                        );
-                    }
-
-                    Promise.all(textPromises).then(pagesText => {
-                        const fullText = pagesText.join('\n');
-                        const rows = extractMenuFromText(fullText);
-                        if (rows.length === 0) {
-                            showToast('No structured menu items detected in PDF!', 'error');
-                            return;
-                        }
-                        rawLoadedRows = rows;
-                        parseMenuRows(rows);
-                        updateFileBadge(file.name);
-                        showToast('PDF file parsed successfully!');
-                    });
-                }).catch(err => {
-                    console.error(err);
-                    showToast('Error reading PDF file', 'error');
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // Smart Text Extractor (Converts Unstructured Text/PDF/DOCX to Menu Rows)
-        function extractMenuFromText(text) {
-            const lines = text.split(/\r?\n/);
-            const extracted = [];
-            let currentCategory = "General";
-
-            lines.forEach(line => {
-                const trimmed = line.trim();
-                if (!trimmed) return;
-
-                // Category detection heuristic (Short, bold/uppercase headers)
-                if (trimmed.length < 45 && !trimmed.match(/\d+/) && (trimmed === trimmed.toUpperCase() || trimmed.endsWith(':'))) {
-                    currentCategory = trimmed.replace(':', '').trim();
-                    return;
-                }
-
-                // Item & price detection heuristic (e.g., "Chola Bhatura ... 160" or "Paneer Tikka - ₹280")
-                const match = trimmed.match(/^(.+?)(?:\s*(?:₹|Rs\.?|-|\.\.\.)\s*)(\d{2,4})\s*$/i);
-                if (match) {
-                    extracted.push({
-                        "Category": currentCategory,
-                        "Item Name": match[1].replace(/[\.\-]/g, '').trim(),
-                        "Price": parseFloat(match[2])
-                    });
-                } else if (trimmed.length > 3 && trimmed.length < 50) {
-                    // Item without explicit price
-                    extracted.push({
-                        "Category": currentCategory,
-                        "Item Name": trimmed,
-                        "Price": 0
-                    });
-                }
-            });
-
-            return extracted;
-        }
-
-        // Helper value fetcher
-        function getRowValue(row, keys) {
-            const rKeys = Object.keys(row);
-            for (let k of keys) {
-                const found = rKeys.find(rk => rk.trim().toLowerCase() === k.trim().toLowerCase());
-                if (found && row[found] !== undefined && row[found] !== null && row[found].toString().trim() !== '') {
-                    return row[found].toString().trim();
-                }
-            }
-            return null;
-        }
-
-        function generateAddonGroupName(category) {
-            return `${category.trim()} Add-ons`;
-        }
-
-        function selectCategoryAddons(categoryName, items, categoryItems) {
-            const cat = categoryName.toLowerCase();
-            if (cat.includes('wrap') || cat.includes('burger') || cat.includes('fast food') || cat.includes('snack')) {
-                return [
-                    { name: 'Cold Drink (250 ml)', price: 49 },
-                    { name: 'French Fries', price: 140 },
-                    { name: 'Cold Coffee', price: 150 },
-                    { name: 'Kit Kat Shake', price: 180 },
-                    { name: 'Sweet Lassi', price: 110 }
-                ];
-            }
-            if (cat.includes('south indian')) {
-                return [
-                    { name: 'Extra Sambhar', price: 50 },
-                    { name: 'Extra Chutney', price: 50 },
-                    { name: 'Sweet Lassi', price: 110 },
-                    { name: 'Masala Chaach', price: 90 }
-                ];
-            }
-            if (cat.includes('chinese') || cat.includes('momo')) {
-                return [
-                    { name: 'Spring Roll', price: 180 },
-                    { name: 'Chilly Paneer Dry', price: 300 },
-                    { name: 'Cold Coffee', price: 150 },
-                    { name: 'Cold Drink (250 ml)', price: 49 }
-                ];
-            }
-            return [
-                { name: 'Cold Drink (250 ml)', price: 49 },
-                { name: 'Sweet Lassi', price: 110 },
-                { name: 'Cold Coffee', price: 150 },
-                { name: 'Gulab Jamun (1 Pc)', price: 60 }
-            ];
-        }
-
-        // Strategy & Toggle Mode helper
-        function switchMode(mode) {
-            document.getElementById('groupingMode').value = mode;
-            const btnCat = document.getElementById('btnCategoryMode');
-            const btnItem = document.getElementById('btnItemMode');
-            const activeText = document.getElementById('activeModeText');
-            const activeBadge = document.getElementById('activeModeBadge');
-
-            if (mode === 'category') {
-                btnCat.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm font-semibold";
-                btnItem.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
-                activeText.innerHTML = `<strong class="font-semibold">Category-Wise Grouping</strong> &mdash; Add-ons are grouped by broad categories.`;
-                activeBadge.innerText = "Category Mode";
-            } else {
-                btnItem.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm font-semibold";
-                btnCat.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
-                activeText.innerHTML = `<strong class="font-semibold">Item-Wise (Specific) Grouping</strong> &mdash; Dishes get dish-tailored specific add-on groups.`;
-                activeBadge.innerText = "Item Mode";
-            }
-
-            reprocessCurrentData();
-        }
-
-        // Smart Extraction Engine (Supports Item-Wise & Category-Wise)
-        function parseMenuRows(rows) {
-            parsedAddons = [];
-            const groupMap = new Map();
-            const mode = document.getElementById('groupingMode').value;
-
-            let hasExplicitAddons = false;
-
-            // Strategy 1: Explicit column check
-            rows.forEach(row => {
-                const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group', 'Item Category']) || 'General Add-ons';
-                const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
-                const groupKey = (mode === 'item' && itemName) ? `${itemName} Add-ons` : generateAddonGroupName(category);
-
-                for (let i = 1; i <= 10; i++) {
-                    const addonName = getRowValue(row, [`Add-on ${i}`, `Addon ${i}`, `Add-on Name ${i}`, `Option ${i}`]);
-                    const addonPrice = parseFloat(getRowValue(row, [`Add-on ${i} Price`, `Addon ${i} Price`, `Add-on Price ${i}`, `Option ${i} Price`])) || 0;
-
-                    if (addonName && addonName.trim() !== "") {
-                        hasExplicitAddons = true;
-                        addToGroup(groupMap, groupKey, addonName.trim(), addonPrice);
-                    }
-                }
-            });
-
-            // Strategy 2: Automatic Pairing Logic
-            if (!hasExplicitAddons || groupMap.size === 0) {
-                const categoryItems = new Map();
-
-                rows.forEach(row => {
-                    const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group', 'Item Category']) || 'General';
-                    const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
-                    const itemPrice = parseFloat(getRowValue(row, ['Price', 'Item Price', 'Rate', 'MRP'])) || 0;
-
-                    if (itemName && itemName.trim() !== '') {
-                        if (!categoryItems.has(category)) {
-                            categoryItems.set(category, []);
-                        }
-                        categoryItems.get(category).push({ name: itemName.trim(), price: itemPrice });
-                    }
-                });
-
-                if (mode === 'item') {
-                    rows.forEach(row => {
-                        const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
-                        const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group']) || 'General';
-                        if (itemName && itemName.trim() !== '') {
-                            const groupName = `${itemName.trim()} Add-ons`;
-                            const recommended = selectSpecificItemAddons(itemName.trim(), category, categoryItems);
-                            recommended.forEach(addon => addToGroup(groupMap, groupName, addon.name, addon.price));
-                        }
-                    });
+        function switchTab(tabNum) {
+            [1, 2, 3].forEach(n => {
+                const btn = document.getElementById(`btn-tab-${n}`);
+                const content = document.getElementById(`tab-content-${n}`);
+                if (n === tabNum) {
+                    btn.className = "tab-active px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2";
+                    content.classList.remove('hidden');
                 } else {
-                    categoryItems.forEach((items, categoryName) => {
-                        const groupName = generateAddonGroupName(categoryName);
-                        const recommendedAddons = selectCategoryAddons(categoryName, items, categoryItems);
-                        recommendedAddons.forEach(addon => {
-                            addToGroup(groupMap, groupName, addon.name, addon.price);
-                        });
-                    });
+                    btn.className = "text-slate-400 hover:text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2";
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        // Handle Menu File Upload
+        function handleMenuUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                parseMenuData(jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Parse extracted array rows
+        function parseMenuData(rows) {
+            parsedAddonsData = [];
+            let headerIndex = -1;
+
+            for (let i = 0; i < rows.length; i++) {
+                const rowStr = rows[i].join(' ').toLowerCase();
+                if (rowStr.includes('item name') || rowStr.includes('product name')) {
+                    headerIndex = i;
+                    break;
                 }
             }
 
-            // Convert Map to Rows & Compute Addon_Max equal to group size
-            let idSeq = 1;
-            const autoMax = document.getElementById('autoMaxGroupSize').checked;
-            const defaultMaxVal = parseInt(document.getElementById('defaultMax').value) || 5;
+            if (headerIndex === -1) headerIndex = 0;
 
-            groupMap.forEach((items, groupName) => {
-                const currentGroupId = idSeq++;
-                const calculatedMax = autoMax ? items.length : defaultMaxVal;
+            const headers = rows[headerIndex].map(h => String(h || '').trim());
+            const itemIdx = headers.findIndex(h => h.toLowerCase().includes('item name') || h.toLowerCase().includes('product name'));
+            const catIdx = headers.findIndex(h => h.toLowerCase().includes('category'));
 
-                items.forEach(item => {
-                    parsedAddons.push({
-                        groupId: currentGroupId,
-                        groupName: groupName,
-                        itemName: item.name,
-                        itemPrice: item.price,
-                        min: parseInt(document.getElementById('defaultMin').value) || 0,
-                        max: calculatedMax,
-                        selection: document.getElementById('defaultSelection').value || 'M',
-                        attribute: document.getElementById('defaultAttribute').value || 'veg',
-                        online: document.getElementById('defaultOnline').value || 'yes',
-                        pos: document.getElementById('defaultPos').value || 'yes',
-                        captain: document.getElementById('defaultCaptain').value || 'yes'
+            let groupId = 1;
+            const autoMax = document.getElementById('chk-auto-max').checked;
+            const categoryMap = {};
+
+            for (let i = headerIndex + 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+
+                const itemName = row[itemIdx] ? String(row[itemIdx]).trim() : '';
+                const category = row[catIdx] ? String(row[catIdx]).trim() : 'General';
+
+                if (!itemName) continue;
+
+                if (!categoryMap[category]) categoryMap[category] = [];
+                
+                for (let c = 0; c < headers.length; c++) {
+                    if (headers[c].toLowerCase().includes('add-on') || headers[c].toLowerCase().includes('addon')) {
+                        const addVal = row[c] ? String(row[c]).trim() : '';
+                        if (addVal) {
+                            categoryMap[category].push({ name: addVal, price: 50 });
+                        }
+                    }
+                }
+            }
+
+            const defaultSides = [
+                { name: "Extra Dip & Sauce", price: 30 },
+                { name: "Cold Drink 250ml", price: 49 },
+                { name: "French Fries", price: 120 },
+                { name: "Cheese Slice", price: 40 },
+                { name: "Sweet Lassi", price: 90 }
+            ];
+
+            Object.keys(categoryMap).forEach((cat) => {
+                let addons = categoryMap[cat].length > 0 ? categoryMap[cat] : defaultSides;
+                const addonMaxVal = autoMax ? addons.length : 5;
+                const grpName = `${cat} Add-ons`;
+
+                addons.forEach(add => {
+                    parsedAddonsData.push({
+                        groupId: groupId,
+                        groupName: grpName,
+                        itemName: add.name,
+                        price: add.price,
+                        min: 0,
+                        max: addonMaxVal,
+                        selection: 'M',
+                        status: 'yes'
                     });
                 });
+                groupId++;
             });
 
-            renderTable();
-            populateCategoryFilter();
+            renderStep1Table();
+            renderStep2Table();
+            document.getElementById('step1-output').classList.remove('hidden');
         }
 
-        // Dedicated Specific Item-Wise Smart Selector
-        function selectSpecificItemAddons(itemName, categoryName, categoryItems) {
-            const item = itemName.toLowerCase();
-            if (item.includes('chola') || item.includes('bhatura')) {
-                return [{ name: 'Extra Bhature', price: 50 }, { name: 'Cold Drink (250 ml)', price: 49 }, { name: 'Sweet Lassi', price: 110 }, { name: 'Gulab Jamun (1 Pc)', price: 60 }];
-            }
-            if (item.includes('paav') || item.includes('pav')) {
-                return [{ name: 'Extra Pav', price: 50 }, { name: 'Cold Drink (250 ml)', price: 49 }, { name: 'Masala Chaach', price: 90 }, { name: 'Gulab Jamun (1 Pc)', price: 60 }];
-            }
-            if (item.includes('khichdi')) {
-                return [{ name: 'Aloo Jeera', price: 170 }, { name: 'Boondi Raita', price: 130 }, { name: 'Plain Chaach', price: 70 }, { name: 'Green Salad', price: 109 }];
-            }
-            if (item.includes('dal tadka')) {
-                return [{ name: 'Garlic Naan', price: 80 }, { name: 'Tandoori Butter Roti', price: 25 }, { name: 'Jeera Rice', price: 170 }, { name: 'Boondi Raita', price: 130 }];
-            }
+        function renderStep1Table() {
+            const tbody = document.getElementById('tbl-step1-body');
+            tbody.innerHTML = '';
 
-            return selectCategoryAddons(categoryName, [], categoryItems);
-        }
-
-        function addToGroup(groupMap, groupName, itemName, price) {
-            if (!groupMap.has(groupName)) groupMap.set(groupName, []);
-            const arr = groupMap.get(groupName);
-            if (!arr.some(i => i.name.toLowerCase() === itemName.toLowerCase())) {
-                arr.push({ name: itemName, price: price });
-            }
-        }
-
-        // Reapply Defaults & Auto Group Max Update
-        function reapplyGlobalDefaults() {
-            const min = parseInt(document.getElementById('defaultMin').value) || 0;
-            const defaultMaxVal = parseInt(document.getElementById('defaultMax').value) || 5;
-            const isAutoMax = document.getElementById('autoMaxGroupSize').checked;
-            const sel = document.getElementById('defaultSelection').value;
-            const attr = document.getElementById('defaultAttribute').value;
-            const online = document.getElementById('defaultOnline').value;
-            const pos = document.getElementById('defaultPos').value;
-            const captain = document.getElementById('defaultCaptain').value;
-
-            const groupCounts = new Map();
-            if (isAutoMax) {
-                parsedAddons.forEach(item => {
-                    groupCounts.set(item.groupId, (groupCounts.get(item.groupId) || 0) + 1);
-                });
-            }
-
-            parsedAddons.forEach(item => {
-                item.min = min;
-                item.max = isAutoMax ? (groupCounts.get(item.groupId) || 1) : defaultMaxVal;
-                item.selection = sel;
-                item.attribute = attr;
-                item.online = online;
-                item.pos = pos;
-                item.captain = captain;
+            parsedAddonsData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 text-cyan-400 font-bold">${row.groupId}</td>
+                    <td class="p-3 font-semibold text-white">${row.groupName}</td>
+                    <td class="p-3">${row.itemName}</td>
+                    <td class="p-3 text-emerald-400">₹${row.price}</td>
+                    <td class="p-3">${row.min}</td>
+                    <td class="p-3 font-bold text-cyan-300">${row.max}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 text-[10px] font-bold">${row.selection}</span></td>
+                `;
+                tbody.appendChild(tr);
             });
 
-            renderTable();
-            showToast(isAutoMax ? 'Addon_Max updated to match exact group items count!' : 'Global defaults updated');
+            document.getElementById('step1-stats').innerText = `${parsedAddonsData.length} Add-on items in ${new Set(parsedAddonsData.map(d=>d.groupId)).size} Groups`;
         }
 
-        // Demo Data Loader
-        function loadSampleData() {
+        function renderStep2Table() {
+            const tbody = document.getElementById('tbl-step2-body');
+            tbody.innerHTML = '';
+
+            parsedAddonsData.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2"><input type="text" value="${row.groupName}" onchange="parsedAddonsData[${idx}].groupName=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-full text-xs"></td>
+                    <td class="p-2"><input type="text" value="${row.itemName}" onchange="parsedAddonsData[${idx}].itemName=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-full text-xs"></td>
+                    <td class="p-2"><input type="number" value="${row.price}" onchange="parsedAddonsData[${idx}].price=Number(this.value)" class="bg-slate-900 border border-slate-700 text-emerald-400 rounded px-2 py-1 w-20 text-xs font-bold"></td>
+                    <td class="p-2"><input type="number" value="${row.min}" onchange="parsedAddonsData[${idx}].min=Number(this.value)" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-16 text-xs"></td>
+                    <td class="p-2"><input type="number" value="${row.max}" onchange="parsedAddonsData[${idx}].max=Number(this.value)" class="bg-slate-900 border border-slate-700 text-cyan-300 font-bold rounded px-2 py-1 w-16 text-xs"></td>
+                    <td class="p-2">
+                        <select onchange="parsedAddonsData[${idx}].selection=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs">
+                            <option value="M" ${row.selection==='M'?'selected':''}>Multiple (M)</option>
+                            <option value="S" ${row.selection==='S'?'selected':''}>Single (S)</option>
+                        </select>
+                    </td>
+                    <td class="p-2">
+                        <select onchange="parsedAddonsData[${idx}].status=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs">
+                            <option value="yes" ${row.status==='yes'?'selected':''}>Active</option>
+                            <option value="no" ${row.status==='no'?'selected':''}>Inactive</option>
+                        </select>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadDemoData() {
             const demoRows = [
-                { "Category": "Breakfast", "Item Name": "Chola Bhatura", "Price": 160 },
-                { "Category": "Breakfast", "Item Name": "Paav Bhaji", "Price": 140 },
-                { "Category": "Tandoori", "Item Name": "Paneer Tikka", "Price": 280 },
-                { "Category": "South Indian Food", "Item Name": "Masala Dosa", "Price": 150 },
-                { "Category": "Chinese", "Item Name": "Veg Chowmein", "Price": 180 },
-                { "Category": "Dal", "Item Name": "Dal Tadka", "Price": 190 },
-                { "Category": "Dal", "Item Name": "Ghee Dal Rice Khichdi", "Price": 180 },
-                { "Category": "Paneer N Veg", "Item Name": "Paneer Butter Masala", "Price": 300 },
-                { "Category": "Breads", "Item Name": "Butter Naan", "Price": 60 },
-                { "Category": "Beverages", "Item Name": "Cold Coffee", "Price": 150 }
+                ["Category", "Item Name", "Price"],
+                ["UTTAPAMS", "Plain Uttapam [1 Pc]", "130"],
+                ["UTTAPAMS", "Ghee Podi Uttapam [1 Pc]", "150"],
+                ["CLASSIC DOSAS", "Plain Dosa", "130"],
+                ["CLASSIC DOSAS", "Masala Dosa", "170"],
+                ["SOUTHERN BEVERAGES", "South Indian Filter Coffee", "110"]
             ];
-
-            rawLoadedRows = demoRows;
-            parseMenuRows(demoRows);
-            updateFileBadge("Demo_Menu_Grand_Feast.xlsx");
-            showToast("Demo Menu loaded!");
+            parseMenuData(demoRows);
+            switchTab(1);
         }
 
-        // Render Data Table
-        function renderTable() {
-            const tbody = document.getElementById('addonTableBody');
-            const searchInput = document.getElementById('searchInput');
-            const catFilter = document.getElementById('categoryFilter');
-            
-            const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
-            const catVal = catFilter ? catFilter.value : 'ALL';
-
-            const filtered = parsedAddons.filter(item => {
-                const matchesSearch = item.groupName.toLowerCase().includes(searchVal) || item.itemName.toLowerCase().includes(searchVal);
-                const matchesCat = (catVal === 'ALL' || item.groupName === catVal);
-                return matchesSearch && matchesCat;
-            });
-
-            document.getElementById('totalItemsCount').innerText = parsedAddons.length;
-            document.getElementById('showingCount').innerText = `Showing ${filtered.length} of ${parsedAddons.length} rows`;
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="12" class="text-center py-8 text-slate-400">
-                            No matching add-on records found.
-                        </td>
-                    </tr>`;
+        function downloadCSV(step) {
+            if (parsedAddonsData.length === 0) {
+                alert("Please upload and parse a menu sheet first!");
                 return;
             }
 
-            let html = '';
-            filtered.forEach((item) => {
-                const origIdx = parsedAddons.indexOf(item);
-                html += `
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="p-3 font-medium text-slate-500">${item.groupId}</td>
-                        <td class="p-3">
-                            <input type="text" value="${escapeHtml(item.groupName)}" onchange="updateItemField(${origIdx}, 'groupName', this.value)" 
-                                   class="w-full px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-indigo-500 font-semibold text-slate-800 bg-transparent outline-none">
-                        </td>
-                        <td class="p-3">
-                            <input type="text" value="${escapeHtml(item.itemName)}" onchange="updateItemField(${origIdx}, 'itemName', this.value)" 
-                                   class="w-full px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-indigo-500 text-slate-700 bg-transparent outline-none">
-                        </td>
-                        <td class="p-3">
-                            <input type="number" value="${item.itemPrice}" step="0.01" onchange="updateItemField(${origIdx}, 'itemPrice', this.value)" 
-                                   class="w-20 px-2 py-1 rounded border border-slate-200 focus:border-indigo-500 outline-none text-slate-800 font-medium">
-                        </td>
-                        <td class="p-3"><input type="number" value="${item.min}" onchange="updateItemField(${origIdx}, 'min', this.value)" class="w-14 px-1.5 py-1 rounded border border-slate-200 outline-none"></td>
-                        <td class="p-3"><input type="number" value="${item.max}" onchange="updateItemField(${origIdx}, 'max', this.value)" class="w-14 px-1.5 py-1 rounded border border-slate-200 outline-none"></td>
-                        <td class="p-3">
-                            <select onchange="updateItemField(${origIdx}, 'selection', this.value)" class="px-1.5 py-1 rounded border border-slate-200 bg-white">
-                                <option value="M" ${item.selection === 'M' ? 'selected' : ''}>M</option>
-                                <option value="S" ${item.selection === 'S' ? 'selected' : ''}>S</option>
-                            </select>
-                        </td>
-                        <td class="p-3">
-                            <select onchange="updateItemField(${origIdx}, 'attribute', this.value)" class="px-1.5 py-1 rounded border border-slate-200 bg-white capitalize">
-                                <option value="veg" ${item.attribute === 'veg' ? 'selected' : ''}>veg</option>
-                                <option value="non-veg" ${item.attribute === 'non-veg' ? 'selected' : ''}>non-veg</option>
-                                <option value="egg" ${item.attribute === 'egg' ? 'selected' : ''}>egg</option>
-                            </select>
-                        </td>
-                        <td class="p-3">
-                            <select onchange="updateItemField(${origIdx}, 'online', this.value)" class="px-1.5 py-1 rounded border border-slate-200 bg-white">
-                                <option value="yes" ${item.online === 'yes' ? 'selected' : ''}>yes</option>
-                                <option value="no" ${item.online === 'no' ? 'selected' : ''}>no</option>
-                            </select>
-                        </td>
-                        <td class="p-3">
-                            <select onchange="updateItemField(${origIdx}, 'pos', this.value)" class="px-1.5 py-1 rounded border border-slate-200 bg-white">
-                                <option value="yes" ${item.pos === 'yes' ? 'selected' : ''}>yes</option>
-                                <option value="no" ${item.pos === 'no' ? 'selected' : ''}>no</option>
-                            </select>
-                        </td>
-                        <td class="p-3">
-                            <select onchange="updateItemField(${origIdx}, 'captain', this.value)" class="px-1.5 py-1 rounded border border-slate-200 bg-white">
-                                <option value="yes" ${item.captain === 'yes' ? 'selected' : ''}>yes</option>
-                                <option value="no" ${item.captain === 'no' ? 'selected' : ''}>no</option>
-                            </select>
-                        </td>
-                        <td class="p-3 text-center">
-                            <button onclick="deleteRow(${origIdx})" class="p-1 text-slate-400 hover:text-rose-600 transition-colors">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </td>
-                    </tr>`;
-            });
-            tbody.innerHTML = html;
-        }
-
-        function updateItemField(index, field, value) {
-            if (parsedAddons[index]) {
-                if (['itemPrice', 'min', 'max'].includes(field)) {
-                    parsedAddons[index][field] = parseFloat(value) || 0;
-                } else {
-                    parsedAddons[index][field] = value;
-                }
-            }
-        }
-
-        function populateCategoryFilter() {
-            const select = document.getElementById('categoryFilter');
-            if (!select) return;
-
-            const groups = [...new Set(parsedAddons.map(i => i.groupName))];
-            let html = '<option value="ALL">All Add-on Groups</option>';
-            groups.forEach(group => {
-                html += `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`;
-            });
-            select.innerHTML = html;
-        }
-
-        function filterTable() { renderTable(); }
-
-        function deleteRow(index) {
-            parsedAddons.splice(index, 1);
-            renderTable();
-            populateCategoryFilter();
-            showToast('Row removed');
-        }
-
-        function addNewRow() {
-            const maxGId = parsedAddons.length > 0 ? Math.max(...parsedAddons.map(i => i.groupId)) : 1;
-            parsedAddons.unshift({
-                groupId: maxGId,
-                groupName: 'Custom Group',
-                itemName: 'New Addon',
-                itemPrice: 50,
-                min: 0,
-                max: 5,
-                selection: 'M',
-                attribute: 'veg',
-                online: 'yes',
-                pos: 'yes',
-                captain: 'yes'
-            });
-            renderTable();
-            populateCategoryFilter();
-            showToast('Custom row added');
-        }
-
-        function exportToCSV() {
-            if (parsedAddons.length === 0) {
-                showToast('No add-on data to export!', 'error');
-                return;
-            }
-
-            let csvRows = [CSV_HEADERS.join(',')];
-
-            parsedAddons.forEach((item, index) => {
-                const row = [
-                    item.groupId,
-                    formatCSVField(item.groupName),
-                    item.online,
-                    'yes',
-                    item.min,
-                    item.max,
-                    item.selection,
-                    1,
-                    item.online,
-                    item.pos,
-                    item.captain,
-                    'no',
-                    formatCSVField(item.itemName),
-                    item.itemPrice,
-                    'yes',
-                    item.attribute,
-                    index + 1,
-                    '',
-                    item.captain
-                ];
-                csvRows.push(row.join(','));
+            let csvContent = "data:text/csv;charset=utf-8,Addon_Group_Id,Addon_Group_Name,Addon_Item_Name,Addon_Item_Price,Addon_Min,Addon_Max,Addon_Item_Selection,Addon_item_status\n";
+            parsedAddonsData.forEach(r => {
+                csvContent += `${r.groupId},"${r.groupName}","${r.itemName}",${r.price},${r.min},${r.max},${r.selection},${r.status}\n`;
             });
 
-            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            const mode = document.getElementById('groupingMode').value;
-            link.setAttribute('href', url);
-            link.setAttribute('download', `${mode}_wise_addon_import_sheet.csv`);
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `MenuAddon_Studio_Addons_${step}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-
-            showToast(`Exported ${mode.toUpperCase()}-WISE CSV successfully!`);
         }
 
-        function formatCSVField(field) {
-            if (!field) return '""';
-            let str = field.toString().replace(/"/g, '""');
-            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                return `"${str}"`;
+        function handleMatrixFile(num, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            fileMatrixData[num] = file;
+            const badge = document.getElementById(`badge-f${num}`);
+            badge.innerText = "Uploaded";
+            badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30";
+        }
+
+        function process3FileMatrix() {
+            if (!parsedAddonsData.length) {
+                alert("Please ensure Menu data is processed in Step 1 first.");
+                return;
             }
-            return str;
-        }
 
-        function clearAllData() {
-            rawLoadedRows = [];
-            parsedAddons = [];
-            renderTable();
-            populateCategoryFilter();
-            document.getElementById('fileStatusBadge').classList.add('hidden');
-            showToast('Cleared all data');
-        }
-
-        function updateFileBadge(fileName) {
-            const badge = document.getElementById('fileStatusBadge');
-            badge.innerText = `Loaded: ${fileName}`;
-            badge.classList.remove('hidden');
-            badge.className = "px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700";
-        }
-
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').innerText = message;
-            document.getElementById('toastIcon').innerHTML = type === 'error' ? 
-                `<i class="fa-solid fa-circle-xmark text-rose-400"></i>` : 
-                `<i class="fa-solid fa-circle-check text-emerald-400"></i>`;
-
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+            const btnContainer = document.getElementById('matrix-export-buttons');
+            btnContainer.innerHTML = `
+                <button onclick="downloadCSV('step1')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-cyan-400 border border-cyan-500/30">
+                    <i class="fa-solid fa-file-csv mr-1"></i> Download 1_Addon_Definitions.csv
+                </button>
+                <button onclick="downloadCSV('step2')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-xs font-bold text-white shadow-lg">
+                    <i class="fa-solid fa-file-csv mr-1"></i> Download 2_Item_Mapping.csv
+                </button>
+            `;
+            alert("3-File Matrix processing completed successfully!");
         }
     </script>
 </body>
