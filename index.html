@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="favicon.png">
-    <title>MenuAddon Studio - POS Add-on Converter & Assigner</title>
+    <title>MenuAddon Studio - POS & Swiggy Add-on Converter</title>
+    
+    <!-- Favicon / Tab Icon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 500'><path fill='%2300d2ff' d='M250 200 C150 50, 20 100, 50 280 C80 380, 200 400, 245 270 C248 260, 252 260, 255 270 C300 400, 420 380, 450 280 C480 100, 350 50, 250 200 Z'/></svg>">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS (xlsx) for Excel Parsing -->
@@ -24,7 +27,6 @@
             background-attachment: fixed;
         }
 
-        /* Glassmorphism card effects */
         .glass-card {
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(16px);
@@ -38,7 +40,6 @@
             border-bottom: 1px solid rgba(0, 210, 255, 0.25);
         }
 
-        /* Electric Blue Butterfly Watermark */
         .butterfly-watermark {
             position: fixed;
             top: 50%;
@@ -56,7 +57,6 @@
             filter: drop-shadow(0 0 40px #00d2ff);
         }
 
-        /* Custom Cyan & Electric Blue Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -77,17 +77,22 @@
             color: #ffffff;
             box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
         }
+
+        .tab-active-swiggy {
+            background: linear-gradient(135deg, #fc8019 0%, #ff5200 100%);
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(252, 128, 25, 0.4);
+        }
     </style>
 </head>
 <body class="min-h-screen relative overflow-x-hidden">
 
-    <!-- Butterfly Background Watermark -->
     <div class="butterfly-watermark"></div>
 
     <div class="relative z-10 flex flex-col min-h-screen">
         <!-- Header Nav -->
         <header class="glass-nav sticky top-0 z-50 px-6 py-4">
-            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-cyan-500/30">
                         <i class="fa-solid font-bold fa-butterfly text-white"></i>
@@ -101,18 +106,22 @@
                 </div>
 
                 <!-- Navigation Tabs -->
-                <div class="flex items-center p-1 bg-slate-900/80 rounded-xl border border-cyan-500/30">
-                    <button id="btn-tab-1" onclick="switchTab(1)" class="tab-active px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full bg-white/20 text-xs flex items-center justify-center font-bold">1</span>
+                <div class="flex flex-wrap items-center p-1 bg-slate-900/80 rounded-xl border border-cyan-500/30">
+                    <button id="btn-tab-1" onclick="switchTab(1)" class="tab-active px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-white/20 text-[10px] flex items-center justify-center font-bold">1</span>
                         Menu Parser & Generator
                     </button>
-                    <button id="btn-tab-2" onclick="switchTab(2)" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full bg-slate-800 text-xs flex items-center justify-center font-bold">2</span>
+                    <button id="btn-tab-2" onclick="switchTab(2)" class="text-slate-400 hover:text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center font-bold">2</span>
                         Addon Editor & Review
                     </button>
-                    <button id="btn-tab-3" onclick="switchTab(3)" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full bg-slate-800 text-xs flex items-center justify-center font-bold">3</span>
+                    <button id="btn-tab-3" onclick="switchTab(3)" class="text-slate-400 hover:text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center font-bold">3</span>
                         3-File Matrix Assigner
+                    </button>
+                    <button id="btn-tab-4" onclick="switchTab(4)" class="text-slate-400 hover:text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-orange-600/30 text-[10px] flex items-center justify-center font-bold text-orange-400">4</span>
+                        <i class="fa-solid fa-utensils text-orange-400"></i> Swiggy Addons
                     </button>
                 </div>
             </div>
@@ -121,17 +130,16 @@
         <!-- Main Workspace Container -->
         <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
-            <!-- TAB 1: Menu Parsing & Add-on Generation -->
+            <!-- TAB 1: Menu Parsing -->
             <div id="tab-content-1" class="space-y-6">
-                <!-- Banner Upload Card -->
                 <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden">
                     <div class="max-w-2xl space-y-4">
                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Step 1: Menu Parsing
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Step 1: Dynamic Addon ID & Group Mapping (Auto De-duplication Active)
                         </div>
-                        <h2 class="text-3xl font-bold text-white tracking-tight">Upload Restaurant Menu File</h2>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">Upload Restaurant Menu / Add-on Sheet</h2>
                         <p class="text-slate-400 text-sm leading-relaxed">
-                            Upload your restaurant menu Excel (.xlsx, .xls) or CSV sheet. MenuAddon Studio will extract items, categories, prices, and build structured POS Add-on groups with auto-matched <code>Addon_Max</code> count rules.
+                            Upload your menu sheet or POS CSV file. Duplicates automatically remove ho jayenge aur har unique item ka <b>ek hi record</b> create hoga.
                         </p>
                     </div>
 
@@ -140,11 +148,10 @@
                         <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-2xl group-hover:scale-110 transition-transform duration-300">
                             <i class="fa-solid fa-file-excel"></i>
                         </div>
-                        <p class="text-white font-semibold text-lg">Click to Upload Menu Excel/CSV Sheet</p>
+                        <p class="text-white font-semibold text-lg">Click to Upload Menu / Add-on Sheet</p>
                         <p class="text-xs text-slate-400 mt-1">Supports XLSX, XLS, and CSV files</p>
                     </div>
 
-                    <!-- Options Bar -->
                     <div class="mt-6 flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-800">
                         <div class="flex items-center gap-6">
                             <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
@@ -153,19 +160,18 @@
                             </label>
                         </div>
                         <button onclick="loadDemoData()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-cyan-400 border border-cyan-500/30 transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-flask"></i> Load Demo Dataset
+                            <i class="fa-solid fa-flask"></i> Load Demo Addons Dataset
                         </button>
                     </div>
                 </div>
 
-                <!-- Preview Grid for Tab 1 -->
                 <div id="step1-output" class="hidden glass-card rounded-2xl p-6 space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
                         <div>
                             <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                                <i class="fa-solid fa-list-check text-cyan-400"></i> Generated Add-on Groups Preview
+                                <i class="fa-solid fa-list-check text-cyan-400"></i> Assigned Unique Add-on Groups Preview
                             </h3>
-                            <p class="text-xs text-slate-400" id="step1-stats">0 Add-on Groups extracted</p>
+                            <p class="text-xs text-slate-400" id="step1-stats">0 Unique Add-on items extracted</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <button onclick="downloadCSV('step1')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 flex items-center gap-2">
@@ -178,8 +184,8 @@
                         <table class="w-full text-left text-xs text-slate-300">
                             <thead class="bg-slate-900/90 text-cyan-400 font-bold uppercase border-b border-slate-800">
                                 <tr>
-                                    <th class="p-3">Group ID</th>
-                                    <th class="p-3">Addon Group Name</th>
+                                    <th class="p-3">Addon Id</th>
+                                    <th class="p-3">Assigned Group Name</th>
                                     <th class="p-3">Addon Item Name</th>
                                     <th class="p-3">Price (₹)</th>
                                     <th class="p-3">Addon Min</th>
@@ -188,7 +194,6 @@
                                 </tr>
                             </thead>
                             <tbody id="tbl-step1-body" class="divide-y divide-slate-800/60 font-mono">
-                                <!-- Dynamic rows -->
                             </tbody>
                         </table>
                     </div>
@@ -203,8 +208,8 @@
                             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold mb-2">
                                 <i class="fa-solid fa-pen-to-square"></i> Step 2: Customization & Review
                             </div>
-                            <h2 class="text-2xl font-bold text-white">Review & Edit Add-on Rules</h2>
-                            <p class="text-xs text-slate-400 mt-1">Modify item names, add-on prices, status, min/max limits before final assignment.</p>
+                            <h2 class="text-2xl font-bold text-white">Review & Edit Assigned Add-on Rules</h2>
+                            <p class="text-xs text-slate-400 mt-1">Addon ID change karne par Group Name dynamic update hoga.</p>
                         </div>
                         <button onclick="downloadCSV('step2')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center gap-2">
                             <i class="fa-solid fa-file-export"></i> Save & Download Reviewed CSV
@@ -215,6 +220,7 @@
                         <table class="w-full text-left text-xs text-slate-300">
                             <thead class="bg-slate-900 sticky top-0 text-cyan-400 font-bold uppercase border-b border-slate-800">
                                 <tr>
+                                    <th class="p-3">Addon Id</th>
                                     <th class="p-3">Group Name</th>
                                     <th class="p-3">Addon Item</th>
                                     <th class="p-3">Price</th>
@@ -226,7 +232,7 @@
                             </thead>
                             <tbody id="tbl-step2-body" class="divide-y divide-slate-800/60 font-mono">
                                 <tr>
-                                    <td colspan="7" class="p-8 text-center text-slate-500 font-sans">
+                                    <td colspan="8" class="p-8 text-center text-slate-500 font-sans">
                                         Please parse or load a menu in Step 1 first to populate the editor.
                                     </td>
                                 </tr>
@@ -247,9 +253,7 @@
                         <p class="text-xs text-slate-400 mt-1">Upload the 3 required files to merge and auto-assign add-on groups to items.</p>
                     </div>
 
-                    <!-- 3 Drag and Drop Upload Slots -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- File 1 Slot -->
                         <div class="p-5 rounded-xl bg-slate-900/60 border border-cyan-500/30 space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-cyan-400 uppercase">File 1</span>
@@ -263,7 +267,6 @@
                             </button>
                         </div>
 
-                        <!-- File 2 Slot -->
                         <div class="p-5 rounded-xl bg-slate-900/60 border border-cyan-500/30 space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-cyan-400 uppercase">File 2</span>
@@ -277,7 +280,6 @@
                             </button>
                         </div>
 
-                        <!-- File 3 Slot -->
                         <div class="p-5 rounded-xl bg-slate-900/60 border border-cyan-500/30 space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-cyan-400 uppercase">File 3</span>
@@ -292,14 +294,68 @@
                         </div>
                     </div>
 
-                    <!-- Process & Export Action Bar -->
                     <div class="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
                         <button onclick="process3FileMatrix()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-sm shadow-lg shadow-cyan-500/30 flex items-center gap-2">
                             <i class="fa-solid fa-gears text-lg"></i> Process 3-File Matrix Merging
                         </button>
                         <div class="flex flex-wrap items-center gap-3" id="matrix-export-buttons">
-                            <!-- Export buttons populate after processing -->
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: SWIGGY ADDON IMPORT SHEET FORMAT -->
+            <div id="tab-content-4" class="hidden space-y-6">
+                <div class="glass-card rounded-2xl p-6 sm:p-8 space-y-6 border-orange-500/30">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-semibold mb-2">
+                                <i class="fa-solid fa-utensils"></i> Swiggy Add-on Import Format (De-duplicated)
+                            </div>
+                            <h2 class="text-2xl font-bold text-white">Swiggy Addon Import Sheet Generator</h2>
+                            <p class="text-xs text-slate-400 mt-1">Exact 18-Column format matching <code>addon_import_sheet.csv</code> layout.</p>
+                        </div>
+                        <button onclick="downloadSwiggyCSV()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white font-bold text-sm shadow-lg shadow-orange-500/20 flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv"></i> Download addon_import_sheet.csv
+                        </button>
+                    </div>
+
+                    <!-- Upload Box for Swiggy Format -->
+                    <div class="border-2 border-dashed border-orange-500/30 hover:border-orange-400 bg-slate-900/40 rounded-xl p-6 text-center transition-all duration-300 cursor-pointer group" onclick="document.getElementById('swiggy-file-input').click()">
+                        <input type="file" id="swiggy-file-input" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleSwiggyUpload(event)">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-tr from-orange-500/20 to-amber-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 text-xl group-hover:scale-110 transition-transform duration-300">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <p class="text-white font-semibold text-sm">Upload addon_import_sheet CSV / Excel Directly Here</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Supports addon_import_sheet & bulk_rest_addons CSV files</p>
+                    </div>
+
+                    <!-- Swiggy Data Table -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-800 max-h-[500px]">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900 sticky top-0 text-orange-400 font-bold uppercase border-b border-slate-800 whitespace-nowrap">
+                                <tr>
+                                    <th class="p-3">Addon_Group_Name</th>
+                                    <th class="p-3">Addon_Group_status</th>
+                                    <th class="p-3">Min</th>
+                                    <th class="p-3">Max</th>
+                                    <th class="p-3">Selection</th>
+                                    <th class="p-3">Addon_Item_Name</th>
+                                    <th class="p-3">Price (₹)</th>
+                                    <th class="p-3">Item Status</th>
+                                    <th class="p-3">Attribute</th>
+                                    <th class="p-3">Show In Online</th>
+                                    <th class="p-3">Show In Pos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-swiggy-body" class="divide-y divide-slate-800/60 font-mono">
+                                <tr>
+                                    <td colspan="11" class="p-8 text-center text-slate-500 font-sans">
+                                        Upload a sheet above to preview and edit Swiggy Add-ons.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -308,7 +364,7 @@
 
         <!-- Footer -->
         <footer class="mt-auto border-t border-slate-900 bg-slate-950/80 py-4 px-6 text-center text-xs text-slate-500">
-            MenuAddon Studio &copy; 2026 | POS Bulk Import & Add-on Matrix Converter
+            MenuAddon Studio &copy; 2026 | POS & Swiggy Add-on Matrix Converter
         </footer>
     </div>
 
@@ -318,20 +374,47 @@
         let fileMatrixData = { 1: null, 2: null, 3: null };
 
         function switchTab(tabNum) {
-            [1, 2, 3].forEach(n => {
+            [1, 2, 3, 4].forEach(n => {
                 const btn = document.getElementById(`btn-tab-${n}`);
                 const content = document.getElementById(`tab-content-${n}`);
                 if (n === tabNum) {
-                    btn.className = "tab-active px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2";
+                    if (n === 4) {
+                        btn.className = "tab-active-swiggy px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-2";
+                        renderSwiggyTable();
+                    } else {
+                        btn.className = "tab-active px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-2";
+                    }
                     content.classList.remove('hidden');
                 } else {
-                    btn.className = "text-slate-400 hover:text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2";
+                    btn.className = "text-slate-400 hover:text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-2";
                     content.classList.add('hidden');
                 }
             });
         }
 
-        // Handle Menu File Upload
+        function generateAddonGroupName(addonId, addonName, category) {
+            const nameLower = (addonName || '').toLowerCase();
+            const idStr = String(addonId || '').trim();
+
+            if (nameLower.includes('dosa')) {
+                return `Extra Dosa Add-ons`;
+            } else if (nameLower.includes('idli')) {
+                return `Extra Idli Add-ons`;
+            } else if (category && category !== 'General') {
+                return `${category} Add-ons`;
+            }
+            return `Toppings`;
+        }
+
+        function updateAddonIdAndGroupName(idx, newId) {
+            parsedAddonsData[idx].groupId = newId;
+            parsedAddonsData[idx].groupName = generateAddonGroupName(newId, parsedAddonsData[idx].itemName, 'General');
+            
+            renderStep1Table();
+            renderStep2Table();
+            renderSwiggyTable();
+        }
+
         function handleMenuUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -349,14 +432,32 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Parse extracted array rows
+        function handleSwiggyUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                parseMenuData(jsonData);
+                switchTab(4);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
         function parseMenuData(rows) {
             parsedAddonsData = [];
-            let headerIndex = -1;
+            if (!rows || rows.length === 0) return;
 
+            let headerIndex = -1;
             for (let i = 0; i < rows.length; i++) {
                 const rowStr = rows[i].join(' ').toLowerCase();
-                if (rowStr.includes('item name') || rowStr.includes('product name')) {
+                if (rowStr.includes('addon_group_name') || rowStr.includes('addon name') || rowStr.includes('item name') || rowStr.includes('addon_item_name')) {
                     headerIndex = i;
                     break;
                 }
@@ -365,77 +466,87 @@
             if (headerIndex === -1) headerIndex = 0;
 
             const headers = rows[headerIndex].map(h => String(h || '').trim());
-            const itemIdx = headers.findIndex(h => h.toLowerCase().includes('item name') || h.toLowerCase().includes('product name'));
-            const catIdx = headers.findIndex(h => h.toLowerCase().includes('category'));
+            const addonIdIdx = headers.findIndex(h => h.toLowerCase().includes('addon_group_id') || h.toLowerCase().includes('addon id'));
+            const groupNameIdx = headers.findIndex(h => h.toLowerCase().includes('addon_group_name') || h.toLowerCase().includes('group name'));
+            const addonNameIdx = headers.findIndex(h => h.toLowerCase().includes('addon_item_name') || h.toLowerCase().includes('addon name') || h.toLowerCase().includes('item name'));
+            const priceIdx = headers.findIndex(h => h.toLowerCase().includes('price'));
+            const minIdx = headers.findIndex(h => h.toLowerCase().includes('addon_min') || h.toLowerCase().includes('min'));
+            const maxIdx = headers.findIndex(h => h.toLowerCase().includes('addon_max') || h.toLowerCase().includes('max'));
+            const selIdx = headers.findIndex(h => h.toLowerCase().includes('selection'));
+            const attrIdx = headers.findIndex(h => h.toLowerCase().includes('attribute'));
 
-            let groupId = 1;
-            const autoMax = document.getElementById('chk-auto-max').checked;
-            const categoryMap = {};
+            let fallbackGroupId = 101;
+            const uniqueAddonTracker = new Set(); // Track duplicate GroupName + ItemName
 
             for (let i = headerIndex + 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
 
-                const itemName = row[itemIdx] ? String(row[itemIdx]).trim() : '';
-                const category = row[catIdx] ? String(row[catIdx]).trim() : 'General';
-
-                if (!itemName) continue;
-
-                if (!categoryMap[category]) categoryMap[category] = [];
+                const addonId = (addonIdIdx !== -1 && row[addonIdIdx]) ? String(row[addonIdIdx]).trim() : String(fallbackGroupId++);
+                const addonName = (addonNameIdx !== -1 && row[addonNameIdx]) ? String(row[addonNameIdx]).trim() : '';
+                const price = (priceIdx !== -1 && row[priceIdx] !== undefined) ? Number(row[priceIdx]) : 10;
+                const minVal = (minIdx !== -1 && row[minIdx] !== undefined) ? Number(row[minIdx]) : 1;
+                const maxVal = (maxIdx !== -1 && row[maxIdx] !== undefined) ? Number(row[maxIdx]) : 2;
+                const selection = (selIdx !== -1 && row[selIdx]) ? String(row[selIdx]).trim().toUpperCase() : 'S';
+                const attribute = (attrIdx !== -1 && row[attrIdx]) ? String(row[attrIdx]).trim() : 'veg';
                 
-                for (let c = 0; c < headers.length; c++) {
-                    if (headers[c].toLowerCase().includes('add-on') || headers[c].toLowerCase().includes('addon')) {
-                        const addVal = row[c] ? String(row[c]).trim() : '';
-                        if (addVal) {
-                            categoryMap[category].push({ name: addVal, price: 50 });
-                        }
-                    }
+                let groupName = (groupNameIdx !== -1 && row[groupNameIdx]) ? String(row[groupNameIdx]).trim() : '';
+                if (!groupName) {
+                    groupName = generateAddonGroupName(addonId, addonName, 'General');
                 }
-            }
 
-            const defaultSides = [
-                { name: "Extra Dip & Sauce", price: 30 },
-                { name: "Cold Drink 250ml", price: 49 },
-                { name: "French Fries", price: 120 },
-                { name: "Cheese Slice", price: 40 },
-                { name: "Sweet Lassi", price: 90 }
-            ];
+                if (!addonName) continue;
 
-            Object.keys(categoryMap).forEach((cat) => {
-                let addons = categoryMap[cat].length > 0 ? categoryMap[cat] : defaultSides;
-                const addonMaxVal = autoMax ? addons.length : 5;
-                const grpName = `${cat} Add-ons`;
+                // De-duplication Logic: Create unique key (GroupName + ItemName)
+                const uniqueKey = `${groupName.toLowerCase().trim()}::${addonName.toLowerCase().trim()}`;
+                
+                if (uniqueAddonTracker.has(uniqueKey)) {
+                    continue; // Skip Duplicate Entry
+                }
+                
+                uniqueAddonTracker.add(uniqueKey); // Register unique item
 
-                addons.forEach(add => {
-                    parsedAddonsData.push({
-                        groupId: groupId,
-                        groupName: grpName,
-                        itemName: add.name,
-                        price: add.price,
-                        min: 0,
-                        max: addonMaxVal,
-                        selection: 'M',
-                        status: 'yes'
-                    });
+                parsedAddonsData.push({
+                    groupId: addonId,
+                    groupName: groupName,
+                    onlineDisplay: groupName,
+                    groupStatus: 'yes',
+                    min: isNaN(minVal) ? 1 : minVal,
+                    max: isNaN(maxVal) ? 2 : maxVal,
+                    selection: selection === 'M' ? 'M' : 'S',
+                    maxSelectionPerAddon: 1,
+                    showInOnline: 'Yes',
+                    showInPos: 'Yes',
+                    showInCaptain: 'Yes',
+                    allowOpenQty: 'No',
+                    itemName: addonName,
+                    price: isNaN(price) ? 0 : price,
+                    itemStatus: 'yes',
+                    attribute: attribute,
+                    rank: '',
+                    sapcode: ''
                 });
-                groupId++;
-            });
+            }
 
             renderStep1Table();
             renderStep2Table();
-            document.getElementById('step1-output').classList.remove('hidden');
+            renderSwiggyTable();
+            if(document.getElementById('step1-output')) {
+                document.getElementById('step1-output').classList.remove('hidden');
+            }
         }
 
         function renderStep1Table() {
             const tbody = document.getElementById('tbl-step1-body');
+            if(!tbody) return;
             tbody.innerHTML = '';
 
             parsedAddonsData.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="p-3 text-cyan-400 font-bold">${row.groupId}</td>
-                    <td class="p-3 font-semibold text-white">${row.groupName}</td>
-                    <td class="p-3">${row.itemName}</td>
+                    <td class="p-3 font-semibold text-emerald-400">${row.groupName}</td>
+                    <td class="p-3 font-semibold text-white">${row.itemName}</td>
                     <td class="p-3 text-emerald-400">₹${row.price}</td>
                     <td class="p-3">${row.min}</td>
                     <td class="p-3 font-bold text-cyan-300">${row.max}</td>
@@ -444,21 +555,38 @@
                 tbody.appendChild(tr);
             });
 
-            document.getElementById('step1-stats').innerText = `${parsedAddonsData.length} Add-on items in ${new Set(parsedAddonsData.map(d=>d.groupId)).size} Groups`;
+            const uniqueGroups = new Set(parsedAddonsData.map(d => d.groupName)).size;
+            if(document.getElementById('step1-stats')) {
+                document.getElementById('step1-stats').innerText = `${parsedAddonsData.length} Unique Add-on items mapped into ${uniqueGroups} Group(s)`;
+            }
         }
 
         function renderStep2Table() {
             const tbody = document.getElementById('tbl-step2-body');
+            if(!tbody) return;
             tbody.innerHTML = '';
 
             parsedAddonsData.forEach((row, idx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="p-2"><input type="text" value="${row.groupName}" onchange="parsedAddonsData[${idx}].groupName=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-full text-xs"></td>
-                    <td class="p-2"><input type="text" value="${row.itemName}" onchange="parsedAddonsData[${idx}].itemName=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-full text-xs"></td>
-                    <td class="p-2"><input type="number" value="${row.price}" onchange="parsedAddonsData[${idx}].price=Number(this.value)" class="bg-slate-900 border border-slate-700 text-emerald-400 rounded px-2 py-1 w-20 text-xs font-bold"></td>
-                    <td class="p-2"><input type="number" value="${row.min}" onchange="parsedAddonsData[${idx}].min=Number(this.value)" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-16 text-xs"></td>
-                    <td class="p-2"><input type="number" value="${row.max}" onchange="parsedAddonsData[${idx}].max=Number(this.value)" class="bg-slate-900 border border-slate-700 text-cyan-300 font-bold rounded px-2 py-1 w-16 text-xs"></td>
+                    <td class="p-2">
+                        <input type="text" value="${row.groupId}" onchange="updateAddonIdAndGroupName(${idx}, this.value)" class="bg-slate-900 border border-slate-700 text-cyan-400 font-mono font-bold rounded px-2 py-1 w-28 text-xs">
+                    </td>
+                    <td class="p-2">
+                        <input type="text" value="${row.groupName}" onchange="parsedAddonsData[${idx}].groupName=this.value" class="bg-slate-900 border border-slate-700 text-emerald-400 font-semibold rounded px-2 py-1 w-full text-xs">
+                    </td>
+                    <td class="p-2">
+                        <input type="text" value="${row.itemName}" onchange="parsedAddonsData[${idx}].itemName=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-full text-xs">
+                    </td>
+                    <td class="p-2">
+                        <input type="number" value="${row.price}" onchange="parsedAddonsData[${idx}].price=Number(this.value)" class="bg-slate-900 border border-slate-700 text-emerald-400 rounded px-2 py-1 w-20 text-xs font-bold">
+                    </td>
+                    <td class="p-2">
+                        <input type="number" value="${row.min}" onchange="parsedAddonsData[${idx}].min=Number(this.value)" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-16 text-xs">
+                    </td>
+                    <td class="p-2">
+                        <input type="number" value="${row.max}" onchange="parsedAddonsData[${idx}].max=Number(this.value)" class="bg-slate-900 border border-slate-700 text-cyan-300 font-bold rounded px-2 py-1 w-16 text-xs">
+                    </td>
                     <td class="p-2">
                         <select onchange="parsedAddonsData[${idx}].selection=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs">
                             <option value="M" ${row.selection==='M'?'selected':''}>Multiple (M)</option>
@@ -466,9 +594,9 @@
                         </select>
                     </td>
                     <td class="p-2">
-                        <select onchange="parsedAddonsData[${idx}].status=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs">
-                            <option value="yes" ${row.status==='yes'?'selected':''}>Active</option>
-                            <option value="no" ${row.status==='no'?'selected':''}>Inactive</option>
+                        <select onchange="parsedAddonsData[${idx}].itemStatus=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs">
+                            <option value="yes" ${row.itemStatus==='yes'?'selected':''}>Active</option>
+                            <option value="no" ${row.itemStatus==='no'?'selected':''}>Inactive</option>
                         </select>
                     </td>
                 `;
@@ -476,17 +604,52 @@
             });
         }
 
+        function renderSwiggyTable() {
+            const tbody = document.getElementById('tbl-swiggy-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (parsedAddonsData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-500 font-sans">Upload a sheet above to preview and edit Swiggy Add-ons.</td></tr>`;
+                return;
+            }
+
+            parsedAddonsData.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2"><input type="text" value="${row.groupName}" onchange="parsedAddonsData[${idx}].groupName=this.value" class="bg-slate-900 border border-orange-500/30 text-orange-400 font-semibold rounded px-2 py-1 w-36 text-xs"></td>
+                    <td class="p-2"><span class="text-emerald-400">${row.groupStatus}</span></td>
+                    <td class="p-2"><input type="number" value="${row.min}" onchange="parsedAddonsData[${idx}].min=Number(this.value)" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-14 text-xs"></td>
+                    <td class="p-2"><input type="number" value="${row.max}" onchange="parsedAddonsData[${idx}].max=Number(this.value)" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 w-14 text-xs"></td>
+                    <td class="p-2"><span class="px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 font-bold">${row.selection}</span></td>
+                    <td class="p-2"><input type="text" value="${row.itemName}" onchange="parsedAddonsData[${idx}].itemName=this.value" class="bg-slate-900 border border-slate-700 text-white font-semibold rounded px-2 py-1 w-36 text-xs"></td>
+                    <td class="p-2"><input type="number" value="${row.price}" onchange="parsedAddonsData[${idx}].price=Number(this.value)" class="bg-slate-900 border border-slate-700 text-emerald-400 font-bold rounded px-2 py-1 w-20 text-xs"></td>
+                    <td class="p-2"><span class="text-emerald-300">${row.itemStatus}</span></td>
+                    <td class="p-2">
+                        <select onchange="parsedAddonsData[${idx}].attribute=this.value" class="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs">
+                            <option value="veg" ${row.attribute==='veg'?'selected':''}>veg</option>
+                            <option value="non-veg" ${row.attribute==='non-veg'?'selected':''}>non-veg</option>
+                            <option value="egg" ${row.attribute==='egg'?'selected':''}>egg</option>
+                        </select>
+                    </td>
+                    <td class="p-2"><span class="text-slate-400">${row.showInOnline}</span></td>
+                    <td class="p-2"><span class="text-slate-400">${row.showInPos}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
         function loadDemoData() {
             const demoRows = [
-                ["Category", "Item Name", "Price"],
-                ["UTTAPAMS", "Plain Uttapam [1 Pc]", "130"],
-                ["UTTAPAMS", "Ghee Podi Uttapam [1 Pc]", "150"],
-                ["CLASSIC DOSAS", "Plain Dosa", "130"],
-                ["CLASSIC DOSAS", "Masala Dosa", "170"],
-                ["SOUTHERN BEVERAGES", "South Indian Filter Coffee", "110"]
+                ["Addon_Group_Id", "Addon_Group_Name", "Addon_Group_online_display", "Addon_Group_status", "Addon_Min", "Addon_Max", "Addon_Item_Selection", "Max_Selection_Per_Addon", "Show_In_Online", "Show_In_Pos", "Addon_Group_Show_In_Captain", "Allow_Open_Quantity", "Addon_Item_Name", "Addon_Item_Price", "Addon_item_status", "Attribute", "Rank", "Sapcode", "Show_In_Captain"],
+                ["", "Toppings", "Toppings", "yes", 1, 2, "S", 2, "Yes", "Yes", "Yes", "No", "Jalapinos", 10, "yes", "veg", "", "", "yes"],
+                ["", "Toppings", "Toppings", "yes", 1, 2, "M", 1, "No", "No", "Yes", "Yes", "Tomato", 10, "yes", "non-veg", "", "", "yes"],
+                ["", "Toppings", "Toppings", "yes", 1, 2, "S", 1, "Yes", "Yes", "Yes", "No", "Onion", 0, "no", "egg", "", "", "yes"],
+                ["", "Toppings", "Toppings", "yes", 1, 2, "M", 1, "Yes", "Yes", "Yes", "No", "Pepper", 10, "no", "veg", "", "", "yes"],
+                ["", "Toppings", "Toppings", "yes", 1, 2, "S", 2, "Yes", "Yes", "Yes", "No", "Jalapinos", 10, "yes", "veg", "", "", "yes"] // Duplicate Entry
             ];
             parseMenuData(demoRows);
-            switchTab(1);
+            switchTab(4);
         }
 
         function downloadCSV(step) {
@@ -497,13 +660,37 @@
 
             let csvContent = "data:text/csv;charset=utf-8,Addon_Group_Id,Addon_Group_Name,Addon_Item_Name,Addon_Item_Price,Addon_Min,Addon_Max,Addon_Item_Selection,Addon_item_status\n";
             parsedAddonsData.forEach(r => {
-                csvContent += `${r.groupId},"${r.groupName}","${r.itemName}",${r.price},${r.min},${r.max},${r.selection},${r.status}\n`;
+                csvContent += `${r.groupId},"${r.groupName}","${r.itemName}",${r.price},${r.min},${r.max},${r.selection},${r.itemStatus}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
             link.setAttribute("download", `MenuAddon_Studio_Addons_${step}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function downloadSwiggyCSV() {
+            if (parsedAddonsData.length === 0) {
+                alert("Please upload and parse a menu sheet first!");
+                return;
+            }
+
+            let csvRows = [];
+            csvRows.push("Can not change,,,,,,,,,,,,,,,,,");
+            csvRows.push("Addon_Group_Id,Addon_Group_Name,Addon_Group_online_display,Addon_Group_status,Addon_Min,Addon_Max,Addon_Item_Selection,Max_Selection_Per_Addon,Show_In_Online,Show_In_Pos,Addon_Group_Show_In_Captain,Allow_Open_Quantity,Addon_Item_Name,Addon_Item_Price,Addon_item_status,Attribute,Rank,Sapcode,Show_In_Captain");
+
+            parsedAddonsData.forEach(r => {
+                csvRows.push(`${r.groupId},"${r.groupName}","${r.onlineDisplay}",${r.groupStatus},${r.min},${r.max},${r.selection},${r.maxSelectionPerAddon},${r.showInOnline},${r.showInPos},${r.showInCaptain},${r.allowOpenQty},"${r.itemName}",${r.price},${r.itemStatus},${r.attribute},${r.rank},${r.sapcode},${r.showInCaptain}`);
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `addon_import_sheet.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
