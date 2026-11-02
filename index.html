@@ -8,12 +8,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS (xlsx) for client-side Excel parsing -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Mammoth.js for Word (.docx) document parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- PDF.js for parsing PDF documents -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        if (window['pdfjs-dist/build/pdf']) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
+    </script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <script>
+        // Configure PDF.js worker URL
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
         tailwind.config = {
             theme: {
                 extend: {
@@ -35,7 +49,7 @@
     </script>
     <style>
         .glass-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(229, 231, 235, 0.8);
         }
@@ -66,7 +80,7 @@
                 </div>
                 <div>
                     <h1 class="font-bold text-slate-900 text-lg leading-tight">POS Menu Add-on Generator</h1>
-                    <p class="text-xs text-slate-500">Category-Wise & Item-Wise Add-on CSV Builder</p>
+                    <p class="text-xs text-slate-500">Supports PDF, Word (.docx), Excel (.xlsx), & CSV</p>
                 </div>
             </div>
             
@@ -96,7 +110,7 @@
         <div id="modeBanner" class="p-3.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-circle-info text-indigo-600 text-sm"></i>
-                <span>Current Mode: <strong id="activeModeText" class="font-semibold">Category-Wise Grouping</strong> &mdash; Add-ons are grouped by broad categories.</span>
+                <span>Current Mode: <strong id="activeModeText" class="font-semibold">Category-Wise Grouping</strong> &mdash; Add-ons are grouped by menu categories.</span>
             </div>
             <span class="text-[11px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium" id="activeModeBadge">Category Mode</span>
         </div>
@@ -109,7 +123,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                            <i class="fa-solid fa-file-invoice text-emerald-600"></i>
                             Upload Restaurant Menu File
                         </h2>
                         <span id="fileStatusBadge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
@@ -120,24 +134,44 @@
                     <!-- Drop Zone -->
                     <div id="dropZone" onclick="document.getElementById('fileInput').click()" 
                          class="border-2 border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50/40 rounded-xl p-8 text-center cursor-pointer transition-all duration-200 group">
-                        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect(event)">
+                        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .docx, .pdf" class="hidden" onchange="handleFileSelect(event)">
                         
                         <div class="w-14 h-14 bg-indigo-50 text-indigo-600 group-hover:scale-110 rounded-full flex items-center justify-center mx-auto mb-3 transition-transform">
                             <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
                         </div>
                         <p class="text-sm font-medium text-slate-700 mb-1">
-                            Click to upload or drag & drop Menu File (.xlsx, .xls, .csv)
+                            Click to upload or drag & drop Menu File
                         </p>
-                        <p class="text-xs text-slate-400">
-                            Detects item names, categories, and explicit/implied add-on columns automatically
+                        <p class="text-xs text-slate-500 font-medium">
+                            Supports: <span class="text-emerald-700 font-semibold">Excel (.xlsx, .xls, .csv)</span>, <span class="text-blue-700 font-semibold">Word (.docx)</span> & <span class="text-rose-700 font-semibold">PDF (.pdf)</span>
                         </p>
+                    </div>
+                </div>
+
+                <!-- Format Guide & Note -->
+                <div class="mt-4 pt-3 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+                    <span><i class="fa-solid fa-sparkles text-amber-500 mr-1"></i> Auto-detects dishes, prices, and categories from formatted or raw text.</span>
+                    <button onclick="clearAllData()" class="text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global Configurations Panel -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-600"></i>
+                        POS Import Settings
+                    </h3>
+
                     <div class="space-y-3.5 text-xs">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-medium text-slate-700 mb-1">Grouping Mode</label>
                                 <select id="groupingMode" onchange="reprocessCurrentData()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-white font-medium text-slate-800">
-                                    <option value="item" selected>Item-Wise Groups</option>
-                                    <option value="category">Category-Wise Groups</option>
+                                    <option value="item">Item-Wise Groups</option>
+                                    <option value="category" selected>Category-Wise Groups</option>
                                 </select>
                             </div>
                             <div>
@@ -152,14 +186,14 @@
                                     <label class="block font-medium text-slate-700">Addon Max</label>
                                     <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] text-brand-600 font-semibold">
                                         <input type="checkbox" id="autoMaxGroupSize" checked onchange="toggleAutoMax()" class="rounded text-brand-600 focus:ring-brand-500">
-                                        <span>Auto Group Items Count</span>
+                                        <span>Auto Group Items</span>
                                     </label>
                                 </div>
                                 <input type="number" id="defaultMax" value="5" min="1" disabled onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-slate-100 disabled:opacity-60">
                             </div>
                             <div>
-                                <label class="block font-medium text-slate-700 mb-1">Selection Type</label>
-                                <select id="defaultSelection" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none bg-white">
+                                <label class="block font-medium text-slate-700 mb-1">Selection Mode</label>
+                                <select id="defaultSelection" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
                                     <option value="M" selected>M (Multiple)</option>
                                     <option value="S">S (Single)</option>
                                 </select>
@@ -168,13 +202,6 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block font-medium text-slate-700 mb-1">Selection Mode</label>
-                                <select id="defaultSelection" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                                    <option value="M" selected>M (Multiple)</option>
-                                    <option value="S">S (Single)</option>
-                                </select>
-                            </div>
-                            <div>
                                 <label class="block font-medium text-slate-700 mb-1">Attribute</label>
                                 <select id="defaultAttribute" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
                                     <option value="veg" selected>Veg</option>
@@ -182,25 +209,32 @@
                                     <option value="egg">Egg</option>
                                 </select>
                             </div>
+                            <div>
+                                <label class="block font-medium text-slate-700 mb-1">Allow Open Qty</label>
+                                <select id="defaultOpenQty" onchange="reapplyGlobalDefaults()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                                    <option value="no" selected>no</option>
+                                    <option value="yes">yes</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200">
                             <div>
-                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Online</label>
+                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Show Online</label>
                                 <select id="defaultOnline" onchange="reapplyGlobalDefaults()" class="w-full px-2 py-1 rounded border border-slate-300 text-xs bg-white">
                                     <option value="yes" selected>yes</option>
                                     <option value="no">no</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block font-medium text-slate-600 text-[11px] mb-1">POS</label>
+                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Show POS</label>
                                 <select id="defaultPos" onchange="reapplyGlobalDefaults()" class="w-full px-2 py-1 rounded border border-slate-300 text-xs bg-white">
                                     <option value="yes" selected>yes</option>
                                     <option value="no">no</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Captain</label>
+                                <label class="block font-medium text-slate-600 text-[11px] mb-1">Show Captain</label>
                                 <select id="defaultCaptain" onchange="reapplyGlobalDefaults()" class="w-full px-2 py-1 rounded border border-slate-300 text-xs bg-white">
                                     <option value="yes" selected>yes</option>
                                     <option value="no">no</option>
@@ -212,8 +246,8 @@
 
                 <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
                     <span class="text-xs text-slate-500">Total Add-on Rows: <strong id="totalItemsCount" class="text-slate-800">0</strong></span>
-                    <button onclick="clearAllData()" class="text-xs text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1">
-                        <i class="fa-solid fa-trash-can"></i> Clear All
+                    <button onclick="reapplyGlobalDefaults()" class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-rotate"></i> Apply Defaults
                     </button>
                 </div>
             </div>
@@ -225,11 +259,11 @@
             <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                 <div class="relative min-w-[240px] flex-1 sm:flex-none">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                    <input type="text" id="searchInput" oninput="filterTable()" placeholder="Search group name or item..." 
+                    <input type="text" id="searchInput" oninput="filterTable()" placeholder="Search group or item..." 
                            class="w-full pl-9 pr-3 py-1.5 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
 
-                <select id="categoryFilter" onchange="filterTable()" class="px-3 py-1.5 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <select id="categoryFilter" onchange="filterTable()" class="px-3 py-1.5 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[220px]">
                     <option value="ALL">All Add-on Groups</option>
                 </select>
             </div>
@@ -237,11 +271,11 @@
             <!-- Actions -->
             <div class="flex items-center gap-3 w-full md:w-auto justify-end">
                 <button onclick="addNewRow()" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-plus text-emerald-600"></i> Add Item
+                    <i class="fa-solid fa-plus text-emerald-600"></i> Add Row
                 </button>
                 <button onclick="exportToCSV()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2">
                     <i class="fa-solid fa-file-export"></i>
-                    <span>Export CSV Import File</span>
+                    <span>Download CSV Import File</span>
                 </button>
             </div>
         </div>
@@ -252,7 +286,7 @@
                 <table class="w-full text-left border-collapse text-xs">
                     <thead class="bg-slate-100 text-slate-700 sticky top-0 z-10 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
                         <tr>
-                            <th class="p-3">Group ID</th>
+                            <th class="p-3 w-16">Group ID</th>
                             <th class="p-3 min-w-[180px]">Addon Group Name</th>
                             <th class="p-3 min-w-[180px]">Addon Item Name</th>
                             <th class="p-3 w-24">Price (₹)</th>
@@ -269,8 +303,8 @@
                     <tbody id="addonTableBody" class="divide-y divide-slate-200 bg-white">
                         <tr>
                             <td colspan="12" class="text-center py-12 text-slate-400">
-                                <i class="fa-solid fa-file-excel text-4xl mb-3 text-slate-300 block"></i>
-                                No Add-on data available. Upload a Menu file or click <strong>"Load Demo Menu"</strong>.
+                                <i class="fa-solid fa-file-circle-plus text-4xl mb-3 text-slate-300 block"></i>
+                                Upload a PDF, DOCX, XLSX or CSV file to observe menu items & generate add-ons.
                             </td>
                         </tr>
                     </tbody>
@@ -279,7 +313,7 @@
             <!-- Table Footer -->
             <div class="bg-slate-50 border-t border-slate-200 p-3 px-4 flex justify-between items-center text-xs text-slate-500">
                 <span id="showingCount">Showing 0 rows</span>
-                <span class="text-[11px]">Schema: Standard POS Aggregator Import Specification</span>
+                <span class="text-[11px]">19 Standard Aggregator/POS Export Columns</span>
             </div>
         </div>
 
@@ -293,34 +327,60 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT APP ENGINE -->
+    <!-- JAVASCRIPT ENGINE WITH MULTI-FILE PARSING (PDF, DOCX, XLSX, CSV) -->
     <script>
         // Global Parsed Add-ons Store
         let parsedAddons = [];
         let rawLoadedRows = [];
+        const CSV_HEADERS = ["Addon_Group_ID", "Addon_Group_Name", "Show_In_Online", "Is_Active", "Addon_Min", "Addon_Max", "Addon_Item_Selection", "Max_Selection_Per_Addon", "Show_In_Online_Addon", "Show_In_Pos", "Show_In_Captain", "Is_Default", "Addon_Item_Name", "Addon_Item_Price", "Is_Active_Addon", "Attribute", "Addon_Item_Rank", "Addon_Group_Rank", "Show_In_Captain_Addon"];
 
-        // Toggle Auto Group Size Max vs Manual Max
-        function toggleAutoMax() {
-            const isAuto = document.getElementById('autoMaxGroupSize').checked;
-            const maxInput = document.getElementById('defaultMax');
-            if (isAuto) {
-                maxInput.disabled = true;
-                maxInput.classList.add('bg-slate-100');
-            } else {
-                maxInput.disabled = false;
-                maxInput.classList.remove('bg-slate-100');
-            }
-            reapplyGlobalDefaults();
+        // Drag & Drop Listeners
+        const dropZone = document.getElementById('dropZone');
+        if (dropZone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('border-indigo-500', 'bg-indigo-50/50');
+                }, false);
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
+                }, false);
+            });
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    processFile(files[0]);
+                }
+            });
         }
 
-        function reprocessCurrentData() {
-            if (rawLoadedRows && rawLoadedRows.length > 0) {
-                parseMenuRows(rawLoadedRows);
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                processFile(files[0]);
             }
         }
 
-        // Parse File using SheetJS
+        // Parse File (Excel, CSV, Word DOCX, PDF)
         function processFile(file) {
+            const fileName = file.name.toLowerCase();
+            showToast(`Processing ${file.name}...`);
+
+            if (fileName.endsWith('.docx')) {
+                parseDocxFile(file);
+            } else if (fileName.endsWith('.pdf')) {
+                parsePdfFile(file);
+            } else {
+                parseExcelFile(file);
+            }
+        }
+
+        // Parse Excel & CSV Files using SheetJS
+        function parseExcelFile(file) {
             const reader = new FileReader();
             reader.onload = function (e) {
                 try {
@@ -331,27 +391,203 @@
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                     if (!jsonData || jsonData.length === 0) {
-                        showToast('Uploaded file is empty!', 'error');
+                        showToast('Uploaded sheet is empty!', 'error');
                         return;
                     }
 
                     rawLoadedRows = jsonData;
                     parseMenuRows(jsonData);
                     updateFileBadge(file.name);
-                    showToast('Menu Excel parsed successfully!');
+                    showToast('Excel/CSV parsed successfully!');
                 } catch (err) {
                     console.error(err);
-                    showToast('Error reading Excel file format', 'error');
+                    showToast('Error reading Excel/CSV file', 'error');
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Parse Word (.docx) Files using Mammoth.js
+        function parseDocxFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const arrayBuffer = e.target.result;
+                mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+                    .then(function (result) {
+                        const rawText = result.value;
+                        const rows = extractMenuFromText(rawText);
+                        if (rows.length === 0) {
+                            showToast('No structured items found in Word file!', 'error');
+                            return;
+                        }
+                        rawLoadedRows = rows;
+                        parseMenuRows(rows);
+                        updateFileBadge(file.name);
+                        showToast('Word (.docx) file parsed successfully!');
+                    })
+                    .catch(function (err) {
+                        console.error(err);
+                        showToast('Error reading Word file', 'error');
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Parse PDF Files using pdfjs-dist
+        function parsePdfFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const typedarray = new Uint8Array(e.target.result);
+                pdfjsLib.getDocument(typedarray).promise.then(function (pdf) {
+                    let totalPages = pdf.numPages;
+                    let textPromises = [];
+
+                    for (let i = 1; i <= totalPages; i++) {
+                        textPromises.push(
+                            pdf.getPage(i).then(page => {
+                                return page.getTextContent().then(textContent => {
+                                    return textContent.items.map(item => item.str).join(' ');
+                                });
+                            })
+                        );
+                    }
+
+                    Promise.all(textPromises).then(pagesText => {
+                        const fullText = pagesText.join('\n');
+                        const rows = extractMenuFromText(fullText);
+                        if (rows.length === 0) {
+                            showToast('No structured menu items detected in PDF!', 'error');
+                            return;
+                        }
+                        rawLoadedRows = rows;
+                        parseMenuRows(rows);
+                        updateFileBadge(file.name);
+                        showToast('PDF file parsed successfully!');
+                    });
+                }).catch(err => {
+                    console.error(err);
+                    showToast('Error reading PDF file', 'error');
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Smart Text Extractor (Converts Unstructured Text/PDF/DOCX to Menu Rows)
+        function extractMenuFromText(text) {
+            const lines = text.split(/\r?\n/);
+            const extracted = [];
+            let currentCategory = "General";
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+
+                // Category detection heuristic (Short, bold/uppercase headers)
+                if (trimmed.length < 45 && !trimmed.match(/\d+/) && (trimmed === trimmed.toUpperCase() || trimmed.endsWith(':'))) {
+                    currentCategory = trimmed.replace(':', '').trim();
+                    return;
+                }
+
+                // Item & price detection heuristic (e.g., "Chola Bhatura ... 160" or "Paneer Tikka - ₹280")
+                const match = trimmed.match(/^(.+?)(?:\s*(?:₹|Rs\.?|-|\.\.\.)\s*)(\d{2,4})\s*$/i);
+                if (match) {
+                    extracted.push({
+                        "Category": currentCategory,
+                        "Item Name": match[1].replace(/[\.\-]/g, '').trim(),
+                        "Price": parseFloat(match[2])
+                    });
+                } else if (trimmed.length > 3 && trimmed.length < 50) {
+                    // Item without explicit price
+                    extracted.push({
+                        "Category": currentCategory,
+                        "Item Name": trimmed,
+                        "Price": 0
+                    });
+                }
+            });
+
+            return extracted;
+        }
+
+        // Helper value fetcher
+        function getRowValue(row, keys) {
+            const rKeys = Object.keys(row);
+            for (let k of keys) {
+                const found = rKeys.find(rk => rk.trim().toLowerCase() === k.trim().toLowerCase());
+                if (found && row[found] !== undefined && row[found] !== null && row[found].toString().trim() !== '') {
+                    return row[found].toString().trim();
+                }
+            }
+            return null;
+        }
+
+        function generateAddonGroupName(category) {
+            return `${category.trim()} Add-ons`;
+        }
+
+        function selectCategoryAddons(categoryName, items, categoryItems) {
+            const cat = categoryName.toLowerCase();
+            if (cat.includes('wrap') || cat.includes('burger') || cat.includes('fast food') || cat.includes('snack')) {
+                return [
+                    { name: 'Cold Drink (250 ml)', price: 49 },
+                    { name: 'French Fries', price: 140 },
+                    { name: 'Cold Coffee', price: 150 },
+                    { name: 'Kit Kat Shake', price: 180 },
+                    { name: 'Sweet Lassi', price: 110 }
+                ];
+            }
+            if (cat.includes('south indian')) {
+                return [
+                    { name: 'Extra Sambhar', price: 50 },
+                    { name: 'Extra Chutney', price: 50 },
+                    { name: 'Sweet Lassi', price: 110 },
+                    { name: 'Masala Chaach', price: 90 }
+                ];
+            }
+            if (cat.includes('chinese') || cat.includes('momo')) {
+                return [
+                    { name: 'Spring Roll', price: 180 },
+                    { name: 'Chilly Paneer Dry', price: 300 },
+                    { name: 'Cold Coffee', price: 150 },
+                    { name: 'Cold Drink (250 ml)', price: 49 }
+                ];
+            }
+            return [
+                { name: 'Cold Drink (250 ml)', price: 49 },
+                { name: 'Sweet Lassi', price: 110 },
+                { name: 'Cold Coffee', price: 150 },
+                { name: 'Gulab Jamun (1 Pc)', price: 60 }
+            ];
+        }
+
+        // Strategy & Toggle Mode helper
+        function switchMode(mode) {
+            document.getElementById('groupingMode').value = mode;
+            const btnCat = document.getElementById('btnCategoryMode');
+            const btnItem = document.getElementById('btnItemMode');
+            const activeText = document.getElementById('activeModeText');
+            const activeBadge = document.getElementById('activeModeBadge');
+
+            if (mode === 'category') {
+                btnCat.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm font-semibold";
+                btnItem.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
+                activeText.innerHTML = `<strong class="font-semibold">Category-Wise Grouping</strong> &mdash; Add-ons are grouped by broad categories.`;
+                activeBadge.innerText = "Category Mode";
+            } else {
+                btnItem.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm font-semibold";
+                btnCat.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
+                activeText.innerHTML = `<strong class="font-semibold">Item-Wise (Specific) Grouping</strong> &mdash; Dishes get dish-tailored specific add-on groups.`;
+                activeBadge.innerText = "Item Mode";
+            }
+
+            reprocessCurrentData();
         }
 
         // Smart Extraction Engine (Supports Item-Wise & Category-Wise)
         function parseMenuRows(rows) {
             parsedAddons = [];
             const groupMap = new Map();
-            const mode = document.getElementById('groupingMode').value; // 'item' or 'category'
+            const mode = document.getElementById('groupingMode').value;
 
             let hasExplicitAddons = false;
 
@@ -359,7 +595,6 @@
             rows.forEach(row => {
                 const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group', 'Item Category']) || 'General Add-ons';
                 const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
-                
                 const groupKey = (mode === 'item' && itemName) ? `${itemName} Add-ons` : generateAddonGroupName(category);
 
                 for (let i = 1; i <= 10; i++) {
@@ -391,7 +626,6 @@
                 });
 
                 if (mode === 'item') {
-                    // Item-Wise dynamic grouping
                     rows.forEach(row => {
                         const itemName = getRowValue(row, ['Item Name', 'Item', 'Name', 'Dish Name', 'Items']);
                         const category = getRowValue(row, ['Category', 'category', 'Menu Category', 'Group']) || 'General';
@@ -402,7 +636,6 @@
                         }
                     });
                 } else {
-                    // Category-Wise grouping
                     categoryItems.forEach((items, categoryName) => {
                         const groupName = generateAddonGroupName(categoryName);
                         const recommendedAddons = selectCategoryAddons(categoryName, items, categoryItems);
@@ -413,7 +646,7 @@
                 }
             }
 
-            // Convert Map to Rows & Automatically compute Addon_Max equal to group size
+            // Convert Map to Rows & Compute Addon_Max equal to group size
             let idSeq = 1;
             const autoMax = document.getElementById('autoMaxGroupSize').checked;
             const defaultMaxVal = parseInt(document.getElementById('defaultMax').value) || 5;
@@ -446,9 +679,6 @@
         // Dedicated Specific Item-Wise Smart Selector
         function selectSpecificItemAddons(itemName, categoryName, categoryItems) {
             const item = itemName.toLowerCase();
-            const cat = categoryName.toLowerCase();
-            let list = [];
-
             if (item.includes('chola') || item.includes('bhatura')) {
                 return [{ name: 'Extra Bhature', price: 50 }, { name: 'Cold Drink (250 ml)', price: 49 }, { name: 'Sweet Lassi', price: 110 }, { name: 'Gulab Jamun (1 Pc)', price: 60 }];
             }
@@ -465,6 +695,14 @@
             return selectCategoryAddons(categoryName, [], categoryItems);
         }
 
+        function addToGroup(groupMap, groupName, itemName, price) {
+            if (!groupMap.has(groupName)) groupMap.set(groupName, []);
+            const arr = groupMap.get(groupName);
+            if (!arr.some(i => i.name.toLowerCase() === itemName.toLowerCase())) {
+                arr.push({ name: itemName, price: price });
+            }
+        }
+
         // Reapply Defaults & Auto Group Max Update
         function reapplyGlobalDefaults() {
             const min = parseInt(document.getElementById('defaultMin').value) || 0;
@@ -476,7 +714,6 @@
             const pos = document.getElementById('defaultPos').value;
             const captain = document.getElementById('defaultCaptain').value;
 
-            // Map total size per Group ID
             const groupCounts = new Map();
             if (isAutoMax) {
                 parsedAddons.forEach(item => {
@@ -498,7 +735,7 @@
             showToast(isAutoMax ? 'Addon_Max updated to match exact group items count!' : 'Global defaults updated');
         }
 
-        // Demo Data Loader (Simulates Grand Feast Restaurant Menu)
+        // Demo Data Loader
         function loadSampleData() {
             const demoRows = [
                 { "Category": "Breakfast", "Item Name": "Chola Bhatura", "Price": 160 },
@@ -516,256 +753,17 @@
             rawLoadedRows = demoRows;
             parseMenuRows(demoRows);
             updateFileBadge("Demo_Menu_Grand_Feast.xlsx");
-            showToast("Demo Menu loaded with Auto Addon_Max set!");
-        }
-
-                    generateAddonsFromRawData();
-                    updateFileBadge(file.name);
-                    showToast('Menu parsed successfully!');
-                } catch (err) {
-                    console.error(err);
-                    showToast('Error parsing Excel file.', 'error');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // Mode Switching
-        function switchMode(mode) {
-            currentMode = mode;
-            const btnCat = document.getElementById('btnCategoryMode');
-            const btnItem = document.getElementById('btnItemMode');
-            const activeText = document.getElementById('activeModeText');
-            const activeBadge = document.getElementById('activeModeBadge');
-
-            if (mode === 'category') {
-                btnCat.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm font-semibold";
-                btnItem.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
-                activeText.innerHTML = `<strong class="font-semibold">Category-Wise Grouping</strong> &mdash; Add-ons are grouped by broad categories.`;
-                activeBadge.innerText = "Category Mode";
-            } else {
-                btnItem.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-indigo-600 shadow-sm font-semibold";
-                btnCat.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
-                activeText.innerHTML = `<strong class="font-semibold">Item-Wise (Specific) Grouping</strong> &mdash; Dishes get dish-tailored specific add-on groups.`;
-                activeBadge.innerText = "Item Mode";
-            }
-
-            if (rawMenuData.length > 0) {
-                generateAddonsFromRawData();
-                showToast(`Switched to ${mode === 'category' ? 'Category-Wise' : 'Item-Wise'} Mode`);
-            }
-        }
-
-        // Primary Parsing Logic
-        function generateAddonsFromRawData() {
-            parsedAddons = [];
-            const groupMap = new Map();
-
-            if (currentMode === 'category') {
-                // CATEGORY-WISE GROUPING
-                rawMenuData.forEach(row => {
-                    const category = getRowVal(row, ['Category', 'Menu Category', 'Group']) || 'General Add-ons';
-                    
-                    // Check explicit columns
-                    let foundExplicit = false;
-                    for (let i = 1; i <= 10; i++) {
-                        const addonName = getRowVal(row, [`Add-on ${i}`, `Addon ${i}`, `Option ${i}`]);
-                        const addonPrice = parseFloat(getRowVal(row, [`Add-on ${i} Price`, `Addon ${i} Price`, `Option ${i} Price`])) || 0;
-                        if (addonName) {
-                            foundExplicit = true;
-                            addToGroup(groupMap, `${category} Add-ons`, addonName, addonPrice);
-                        }
-                    }
-
-                    if (!foundExplicit) {
-                        const itemName = getRowVal(row, ['Item Name', 'Item', 'Dish Name']);
-                        const itemPrice = parseFloat(getRowVal(row, ['Price', 'Item Price', 'Rate'])) || 0;
-                        if (itemName) {
-                            // Smart category defaults
-                            const catAddons = getCategoryDefaultAddons(category);
-                            catAddons.forEach(a => addToGroup(groupMap, `${category} Add-ons`, a.name, a.price));
-                        }
-                    }
-                });
-            } else {
-                // ITEM-WISE (SPECIFIC) GROUPING
-                rawMenuData.forEach(row => {
-                    const itemName = getRowVal(row, ['Item Name', 'Item', 'Dish Name']);
-                    const category = getRowVal(row, ['Category', 'Menu Category', 'Group']) || 'General';
-
-                    if (!itemName) return;
-
-                    // Check explicit columns per item
-                    let foundExplicit = false;
-                    const groupName = getItemSpecificGroupName(itemName, category);
-
-                    for (let i = 1; i <= 10; i++) {
-                        const addonName = getRowVal(row, [`Add-on ${i}`, `Addon ${i}`, `Option ${i}`]);
-                        const addonPrice = parseFloat(getRowVal(row, [`Add-on ${i} Price`, `Addon ${i} Price`, `Option ${i} Price`])) || 0;
-                        if (addonName) {
-                            foundExplicit = true;
-                            addToGroup(groupMap, groupName, addonName, addonPrice);
-                        }
-                    }
-
-                    if (!foundExplicit) {
-                        const specificAddons = getItemSpecificDefaultAddons(itemName, category);
-                        specificAddons.forEach(a => addToGroup(groupMap, groupName, a.name, a.price));
-                    }
-                });
-            }
-
-            // Convert map to array structure
-            let seq = 1;
-            groupMap.forEach((items, groupName) => {
-                const gId = seq++;
-                items.forEach(item => {
-                    parsedAddons.push({
-                        groupId: gId,
-                        groupName: groupName,
-                        itemName: item.name,
-                        itemPrice: item.price,
-                        min: document.getElementById('defaultMin').value || 0,
-                        max: document.getElementById('defaultMax').value || 5,
-                        selection: document.getElementById('defaultSelection').value || 'M',
-                        attribute: document.getElementById('defaultAttribute').value || 'veg',
-                        online: document.getElementById('defaultOnline').value || 'yes',
-                        pos: document.getElementById('defaultPos').value || 'yes',
-                        captain: document.getElementById('defaultCaptain').value || 'yes'
-                    });
-                });
-            });
-
-            renderTable();
-            populateCategoryFilter();
-        }
-
-        // Item Specific Group Naming Rule
-        function getItemSpecificGroupName(itemName, category) {
-            const name = itemName.toLowerCase();
-            if (name.includes('bhatura')) return 'Chola Bhatura Add-ons';
-            if (name.includes('pav bhaji') || name.includes('paav bhaji')) return 'Paav Bhaji Add-ons';
-            if (name.includes('momos') || name.includes('momo')) return `${itemName} Add-ons`;
-            if (name.includes('dal tadka')) return 'Dal Tadka Add-ons';
-            if (name.includes('dal makhani')) return 'Dal Makhani Add-ons';
-            if (name.includes('khichdi')) return 'Khichdi Special Add-ons';
-            if (name.includes('biryani')) return `${itemName} Extras`;
-            if (name.includes('vrat') || name.includes('navratri')) return `${itemName} Vrat Sides`;
-
-            return `${itemName} Add-ons`;
-        }
-
-        // Specific Item Add-on Pairing Logic
-        function getItemSpecificDefaultAddons(itemName, category) {
-            const name = itemName.toLowerCase();
-
-            if (name.includes('bhatura')) {
-                return [
-                    { name: 'Extra Bhature', price: 50 },
-                    { name: 'Cold Drink (250 ml)', price: 49 },
-                    { name: 'Sweet Lassi', price: 110 },
-                    { name: 'Cold Coffee', price: 150 },
-                    { name: 'Gulab Jamun (1 Pc)', price: 60 }
-                ];
-            }
-            if (name.includes('pav bhaji') || name.includes('paav bhaji')) {
-                return [
-                    { name: 'Extra Pav', price: 50 },
-                    { name: 'Cold Drink (250 ml)', price: 49 },
-                    { name: 'Sweet Lassi', price: 110 },
-                    { name: 'Cold Coffee', price: 150 },
-                    { name: 'Gulab Jamun (1 Pc)', price: 60 }
-                ];
-            }
-            if (name.includes('dal tadka') || name.includes('dal makhani')) {
-                return [
-                    { name: 'Tandoori Butter Roti', price: 25 },
-                    { name: 'Garlic Naan', price: 80 },
-                    { name: 'Jeera Rice', price: 170 },
-                    { name: 'Boondi Raita', price: 130 },
-                    { name: 'Green Salad', price: 109 }
-                ];
-            }
-            if (name.includes('khichdi')) {
-                return [
-                    { name: 'Boondi Raita', price: 130 },
-                    { name: 'Plain Chaach', price: 70 },
-                    { name: 'Kachumber Salad', price: 119 },
-                    { name: 'Gulab Jamun (1 Pc)', price: 60 }
-                ];
-            }
-            if (name.includes('momos') || name.includes('momo')) {
-                return [
-                    { name: 'Extra Spicy Momo Sauce', price: 30 },
-                    { name: 'Cold Drink (250 ml)', price: 49 },
-                    { name: 'Cold Coffee', price: 150 },
-                    { name: 'Kit Kat Shake', price: 180 }
-                ];
-            }
-
-            // Standard category-level backup if item doesn't hit a specific rule
-            return getCategoryDefaultAddons(category);
-        }
-
-        function getCategoryDefaultAddons(category) {
-            const cat = category.toLowerCase();
-            if (cat.includes('wrap') || cat.includes('burger') || cat.includes('fast food')) {
-                return [
-                    { name: 'Cold Drink (250 ml)', price: 49 },
-                    { name: 'French Fries', price: 140 },
-                    { name: 'Cold Coffee', price: 150 },
-                    { name: 'Kit Kat Shake', price: 180 }
-                ];
-            }
-            if (cat.includes('south indian')) {
-                return [
-                    { name: 'Extra Sambhar', price: 50 },
-                    { name: 'Extra Chutney', price: 50 },
-                    { name: 'Sweet Lassi', price: 110 },
-                    { name: 'Masala Chaach', price: 90 }
-                ];
-            }
-            if (cat.includes('chinese')) {
-                return [
-                    { name: 'Spring Roll', price: 180 },
-                    { name: 'Chilly Paneer Dry', price: 300 },
-                    { name: 'Cold Coffee', price: 150 },
-                    { name: 'Cold Drink (250 ml)', price: 49 }
-                ];
-            }
-
-            return [
-                { name: 'Cold Drink (250 ml)', price: 49 },
-                { name: 'Sweet Lassi', price: 110 },
-                { name: 'Cold Coffee', price: 150 },
-                { name: 'Gulab Jamun (1 Pc)', price: 60 }
-            ];
-        }
-
-        function getRowVal(row, keys) {
-            const rKeys = Object.keys(row);
-            for (let k of keys) {
-                const found = rKeys.find(rk => rk.trim().toLowerCase() === k.trim().toLowerCase());
-                if (found && row[found] !== undefined && row[found] !== null && row[found].toString().trim() !== '') {
-                    return row[found].toString().trim();
-                }
-            }
-            return null;
-        }
-
-        function addToGroup(groupMap, groupName, itemName, price) {
-            if (!groupMap.has(groupName)) groupMap.set(groupName, []);
-            const arr = groupMap.get(groupName);
-            if (!arr.some(i => i.name.toLowerCase() === itemName.toLowerCase())) {
-                arr.push({ name: itemName, price: price });
-            }
+            showToast("Demo Menu loaded!");
         }
 
         // Render Data Table
         function renderTable() {
             const tbody = document.getElementById('addonTableBody');
-            const searchVal = document.getElementById('searchInput').value.toLowerCase();
-            const catVal = document.getElementById('categoryFilter').value;
+            const searchInput = document.getElementById('searchInput');
+            const catFilter = document.getElementById('categoryFilter');
+            
+            const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
+            const catVal = catFilter ? catFilter.value : 'ALL';
 
             const filtered = parsedAddons.filter(item => {
                 const matchesSearch = item.groupName.toLowerCase().includes(searchVal) || item.itemName.toLowerCase().includes(searchVal);
@@ -787,7 +785,7 @@
             }
 
             let html = '';
-            filtered.forEach((item, index) => {
+            filtered.forEach((item) => {
                 const origIdx = parsedAddons.indexOf(item);
                 html += `
                     <tr class="hover:bg-slate-50/80 transition-colors">
@@ -859,8 +857,9 @@
 
         function populateCategoryFilter() {
             const select = document.getElementById('categoryFilter');
-            const groups = [...new Set(parsedAddons.map(i => i.groupName))];
+            if (!select) return;
 
+            const groups = [...new Set(parsedAddons.map(i => i.groupName))];
             let html = '<option value="ALL">All Add-on Groups</option>';
             groups.forEach(group => {
                 html += `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`;
@@ -869,29 +868,6 @@
         }
 
         function filterTable() { renderTable(); }
-
-        function reapplyGlobalDefaults() {
-            const min = parseInt(document.getElementById('defaultMin').value) || 0;
-            const max = parseInt(document.getElementById('defaultMax').value) || 5;
-            const sel = document.getElementById('defaultSelection').value;
-            const attr = document.getElementById('defaultAttribute').value;
-            const online = document.getElementById('defaultOnline').value;
-            const pos = document.getElementById('defaultPos').value;
-            const captain = document.getElementById('defaultCaptain').value;
-
-            parsedAddons.forEach(item => {
-                item.min = min;
-                item.max = max;
-                item.selection = sel;
-                item.attribute = attr;
-                item.online = online;
-                item.pos = pos;
-                item.captain = captain;
-            });
-
-            renderTable();
-            showToast('Global defaults applied to all rows');
-        }
 
         function deleteRow(index) {
             parsedAddons.splice(index, 1);
@@ -956,13 +932,14 @@
             const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
+            const mode = document.getElementById('groupingMode').value;
             link.setAttribute('href', url);
-            link.setAttribute('download', `${currentMode}_wise_addon_import_sheet.csv`);
+            link.setAttribute('download', `${mode}_wise_addon_import_sheet.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            showToast(`Exported ${currentMode.toUpperCase()}-WISE CSV successfully!`);
+            showToast(`Exported ${mode.toUpperCase()}-WISE CSV successfully!`);
         }
 
         function formatCSVField(field) {
@@ -975,7 +952,7 @@
         }
 
         function clearAllData() {
-            rawMenuData = [];
+            rawLoadedRows = [];
             parsedAddons = [];
             renderTable();
             populateCategoryFilter();
@@ -988,23 +965,6 @@
             badge.innerText = `Loaded: ${fileName}`;
             badge.classList.remove('hidden');
             badge.className = "px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700";
-        }
-
-        function loadSampleData() {
-            rawMenuData = [
-                { "Category": "Breakfast", "Item Name": "Chola Bhatura", "Price": 140 },
-                { "Category": "Breakfast", "Item Name": "Paav Bhaji", "Price": 130 },
-                { "Category": "Dal", "Item Name": "Dal Tadka", "Price": 190 },
-                { "Category": "Dal", "Item Name": "Ghee Dal Rice Khichdi", "Price": 200 },
-                { "Category": "Chinese", "Item Name": "Veg Fried Rice", "Price": 200 },
-                { "Category": "Chinese", "Item Name": "Steamed Momos", "Price": 140 },
-                { "Category": "Navratri Special", "Item Name": "Navraatri Thaali", "Price": 350 },
-                { "Category": "South Indian Food", "Item Name": "Masala Dosa", "Price": 150 }
-            ];
-
-            generateAddonsFromRawData();
-            updateFileBadge("Grand_Feast_Sample.xlsx");
-            showToast("Loaded Grand Feast Menu Sample!");
         }
 
         function showToast(message, type = 'success') {
